@@ -1,0 +1,24 @@
+{
+  // 키는 env/dev.json(git 제외)에서 읽는다. 이 옵션 없이 실행하면 "API 키가 필요해요" 화면이 뜬다.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "simple_tracking (dev)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      // iPhone 18 Pro 시뮬레이터. 다른 기기로 실행하려면 이 줄을 지우고 하단 상태 표시줄에서 고른다.
+      "deviceId": "0187BE41-D62C-4C94-9BE0-AFB7E4F1DFF3",
+      "toolArgs": ["--dart-define-from-file=env/dev.json"]
+    },
+    {
+      "name": "simple_tracking (dev, Android)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      // Android 에뮬레이터(Medium_Phone_API_37.0). 에뮬레이터를 먼저 켜 둬야 한다. 카카오 SDK는 ARM 전용이라 x86 에뮬레이터에서는 지도가 안 뜬다.
+      "deviceId": "emulator-5554",
+      "toolArgs": ["--dart-define-from-file=env/dev.json"]
+    }
+  ]
+}

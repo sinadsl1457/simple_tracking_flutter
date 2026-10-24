@@ -1,0 +1,8 @@
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          # JSON 모양이 다르면 TypeError 대신 CheckedFromJsonException을 던진다.
+          # safeApiCall이 Error를 잡지 않아도 되게 한다.
+          checked: true
