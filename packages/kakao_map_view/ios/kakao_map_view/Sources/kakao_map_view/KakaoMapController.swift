@@ -1,7 +1,9 @@
 // [플러그인 Swift] 카카오 지도 SDK를 실제로 조작하는 곳. 네이티브 앱의 같은 파일을 거의 그대로 옮겼다.
 // Dart 명령(HostApi 구현): moveCamera · fitCamera · showPlaceMarkers · showRoute · updateMyLocation
 // Dart로 보내는 이벤트: KakaoMapEvents 프로토콜 → KakaoMapPlatformView가 Pigeon FlutterApi로 전달
+// 방향 콘(정지 중 폰이 향한 방향): CompassHeading 값을 받아 내 위치 점 아래 POI를 돌린다.
 
+import CoreLocation
 @preconcurrency import KakaoMapsSDK
 import UIKit
 
@@ -32,6 +34,8 @@ final class KakaoMapController: NSObject {
         static let myLocationPoi = "myLocation.poi"
         static let dotStyle = "myLocation.dot"
         static let arrowStyle = "myLocation.arrow"
+        static let conePoi = "myLocation.cone"
+        static let coneStyle = "myLocation.cone.style"
         static let placeLayer = "places"
         static let routeLayer = "route"
         static func routeStyle(_ kind: RouteLineKind) -> String { "route.style.\(kind)" }
@@ -46,8 +50,13 @@ final class KakaoMapController: NSObject {
         }
     }
 
-    private static let markerAnimationMillis: UInt = 800
+    /// GPS 갱신 간격(약 1초)과 맞춘다. 짧으면 매초 잠깐 멈췄다 가고, 길면 다음 갱신이 중간에 끊는다.
+    private static let markerAnimationMillis: UInt = 1_000
+    /// 이보다 멀리 뛰면(GPS 재수신, 가상 위치 변경) 지도를 가로질러 미끄러지지 않게 바로 옮긴다.
+    private static let markerJumpMeters: CLLocationDistance = 100
     private static let cameraAnimationMillis: UInt = 300
+    /// 나침반 값 사이를 잇는 회전 시간. 갱신 간격보다 조금 길게 잡아 끊김 없이 돈다.
+    private static let coneRotateMillis: UInt = 150
     private static var isSDKInitialized = false
 
     weak var events: (any KakaoMapEvents)?
@@ -58,6 +67,8 @@ final class KakaoMapController: NSObject {
     private var map: KakaoMap? { controller?.getView(ID.mapView) as? KakaoMap }
     private var myLocationPoi: Poi?
     private var myLocationStyle: String?
+    /// 마지막으로 옮긴 내 위치. 다음 위치까지 거리로 애니메이션 여부를 정한다.
+    private var myLocationPoint: LatLng?
     private var registeredPlaceStyles: Set<String> = []
     private var registeredRouteColors: Set<Int64> = []
     private var shownPlaceMarkers: [PlaceMarker] = []
@@ -68,6 +79,16 @@ final class KakaoMapController: NSObject {
 
     /// 마지막으로 적용한 회전값. 359° → 1°처럼 경계를 넘을 때 반대로 한 바퀴 돌지 않게 이어 붙인다.
     private var lastRoll: Double?
+
+    // 방향 콘: 정지 중(bearing 없음)일 때 점 아래에 폰이 향한 방향을 그린다. 움직이는 중에는 화살표가 방향을 보여 준다.
+    private lazy var compass = CompassHeading { [weak self] in self?.onHeading($0) }
+    private var conePoi: Poi?
+    private var lastConeRoll: Double?
+    /// 나침반이 준 마지막 방향(도, 진북 기준). 아직 모르면 nil.
+    private var heading: Double?
+    private var isStationary = false
+    /// 앱이 active일 때만 나침반을 켠다.
+    private var isActive = true
 
     init(appKey: String) {
         super.init()
@@ -94,6 +115,10 @@ final class KakaoMapController: NSObject {
 
     /// 엔진은 앱이 active일 때만 활성 상태여야 한다.
     func setActive(_ active: Bool) {
+        // 백그라운드에서 센서를 계속 켜 두면 배터리를 쓴다.
+        isActive = active
+        if active, myLocationPoi != nil { compass.start() } else { compass.stop() }
+
         guard let controller else { return }
         if active {
             if !controller.isEnginePrepared { _ = controller.prepareEngine() }
@@ -104,6 +129,8 @@ final class KakaoMapController: NSObject {
     }
 
     func tearDown() {
+        compass.stop()
+        conePoi = nil
         disposePlaceTapHandlers()
         cameraStoppedHandler?.dispose()
         cameraStoppedHandler = nil
@@ -130,6 +157,9 @@ final class KakaoMapController: NSObject {
         ]))
         labelManager.addPoiStyle(PoiStyle(styleID: ID.arrowStyle, styles: [
             PerLevelPoiStyle(iconStyle: PoiIconStyle(symbol: MyLocationMarkerImages.arrow()), level: 0),
+        ]))
+        labelManager.addPoiStyle(PoiStyle(styleID: ID.coneStyle, styles: [
+            PerLevelPoiStyle(iconStyle: PoiIconStyle(symbol: MyLocationMarkerImages.headingCone()), level: 0),
         ]))
     }
 
@@ -236,7 +266,59 @@ final class KakaoMapController: NSObject {
         bearing * .pi / 180
     }
 
+    private static func distance(_ a: LatLng, _ b: LatLng) -> CLLocationDistance {
+        CLLocation(latitude: a.latitude, longitude: a.longitude)
+            .distance(from: CLLocation(latitude: b.latitude, longitude: b.longitude))
+    }
+
+    // MARK: - 방향 콘
+
+    /// 나침반 값이 바뀔 때(초당 여러 번). 위치 이동과 달리 짧게 돌려서 손을 따라오게 한다.
+    private func onHeading(_ degrees: Double) {
+        heading = degrees
+        guard let conePoi else { return syncCone(duration: 0) }
+        let roll = Self.continuousRoll(toward: Self.roll(fromBearing: degrees), from: lastConeRoll)
+        conePoi.rotateAt(roll, duration: Self.coneRotateMillis)
+        lastConeRoll = roll
+    }
+
+    /// 정지 중이고 방향을 알면 콘을 내 위치로 옮기고(없으면 만들고), 아니면 지운다.
+    private func syncCone(duration: UInt) {
+        guard let point = myLocationPoint, let heading, isStationary,
+              let layer = map?.getLabelManager().getLabelLayer(layerID: ID.myLocationLayer) else {
+            return removeCone()
+        }
+        if let conePoi {
+            conePoi.moveAt(Self.mapPoint(point), duration: duration)
+            return
+        }
+        let options = PoiOptions(styleID: ID.coneStyle, poiID: ID.conePoi)
+        // 점(Int32.max) 바로 아래에 깔린다
+        options.rank = Int(Int32.max) - 1
+        options.clickable = false
+        options.transformType = .absoluteRotation
+        guard let poi = layer.addPoi(option: options, at: Self.mapPoint(point)) else { return }
+        let roll = Self.roll(fromBearing: heading)
+        poi.rotateAt(roll, duration: 0)
+        poi.show()
+        conePoi = poi
+        lastConeRoll = roll
+    }
+
+    private func removeCone() {
+        if conePoi != nil {
+            map?.getLabelManager().getLabelLayer(layerID: ID.myLocationLayer)?.removePoi(poiID: ID.conePoi)
+        }
+        conePoi = nil
+        lastConeRoll = nil
+    }
+
     private func continuousRoll(toward target: Double) -> Double {
+        Self.continuousRoll(toward: target, from: lastRoll)
+    }
+
+    /// 직전 회전값(lastRoll)에서 가까운 쪽으로 target을 이어 붙인다. 359° → 1°는 +2°만 돈다.
+    private static func continuousRoll(toward target: Double, from lastRoll: Double?) -> Double {
         guard let lastRoll else { return target }
         var delta = (target - lastRoll).truncatingRemainder(dividingBy: 2 * .pi)
         if delta > .pi { delta -= 2 * .pi }
@@ -353,7 +435,7 @@ extension KakaoMapController: @preconcurrency KakaoMapHostApi {
     }
 
     /// Dart: controller.updateMyLocation → 내 위치 점(방향이 있으면 화살표). nil이면 지운다.
-    /// 처음엔 POI를 만들고, 이후엔 위치·회전만 애니메이션으로 옮긴다.
+    /// 처음엔 POI를 만들고, 이후엔 위치·회전만 애니메이션으로 옮긴다. 100m 넘게 뛰면 바로 옮긴다.
     func updateMyLocation(location: MyLocation?) {
         guard let layer = map?.getLabelManager().getLabelLayer(layerID: ID.myLocationLayer) else { return }
 
@@ -361,7 +443,10 @@ extension KakaoMapController: @preconcurrency KakaoMapHostApi {
             layer.removePoi(poiID: ID.myLocationPoi)
             myLocationPoi = nil
             myLocationStyle = nil
+            myLocationPoint = nil
             lastRoll = nil
+            compass.stop()
+            removeCone()
             return
         }
 
@@ -373,10 +458,12 @@ extension KakaoMapController: @preconcurrency KakaoMapHostApi {
                 poi.changeStyle(styleID: style)
                 myLocationStyle = style
             }
-            poi.moveAt(point, duration: Self.markerAnimationMillis)
+            let jumped = myLocationPoint.map { Self.distance($0, location.point) > Self.markerJumpMeters } ?? false
+            let duration = jumped ? 0 : Self.markerAnimationMillis
+            poi.moveAt(point, duration: duration)
             if let bearing = location.bearing {
                 let roll = continuousRoll(toward: Self.roll(fromBearing: bearing))
-                poi.rotateAt(roll, duration: Self.markerAnimationMillis)
+                poi.rotateAt(roll, duration: duration)
                 lastRoll = roll
             }
         } else {
@@ -395,6 +482,14 @@ extension KakaoMapController: @preconcurrency KakaoMapHostApi {
             myLocationPoi = poi
             myLocationStyle = style
         }
+        // 콘도 점과 같은 시간에 걸쳐 따라간다(멀리 뛰었거나 처음이면 바로).
+        let coneDuration = myLocationPoint.map {
+            Self.distance($0, location.point) > Self.markerJumpMeters ? 0 : Self.markerAnimationMillis
+        } ?? 0
+        myLocationPoint = location.point
+        isStationary = location.bearing == nil
+        if isActive { compass.start() }
+        syncCone(duration: coneDuration)
     }
 }
 

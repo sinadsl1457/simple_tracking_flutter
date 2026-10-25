@@ -63,6 +63,30 @@ enum MyLocationMarkerImages {
         }
     }
 
+    /// 정지 중 폰이 향한 방향. 80pt, 가운데에서 위(북쪽)로 퍼지는 부채꼴(70°). 회전은 POI가 맡는다.
+    /// 가운데는 진하고 바깥으로 갈수록 투명해진다. 내 위치 점 아래에 깔린다.
+    static func headingCone() -> UIImage {
+        let size = CGSize(width: 80, height: 80)
+        let center = CGPoint(x: 40, y: 40)
+        return UIGraphicsImageRenderer(size: size).image { context in
+            // UIKit 각도는 오른쪽이 0이고 시계방향이다. 위쪽(-π/2)을 가운데로 양옆 35°씩.
+            let half = coneSpread / 2
+            let wedge = UIBezierPath()
+            wedge.move(to: center)
+            wedge.addArc(withCenter: center, radius: 40, startAngle: -.pi / 2 - half, endAngle: -.pi / 2 + half, clockwise: true)
+            wedge.close()
+            wedge.addClip()
+
+            let colors = [tint.withAlphaComponent(0.5).cgColor, tint.withAlphaComponent(0).cgColor] as CFArray
+            guard let gradient = CGGradient(colorsSpace: nil, colors: colors, locations: [0, 1]) else { return }
+            context.cgContext.drawRadialGradient(
+                gradient, startCenter: center, startRadius: 0, endCenter: center, endRadius: 40, options: []
+            )
+        }
+    }
+
+    private static let coneSpread: CGFloat = 70 * .pi / 180
+
     private static func circle(center: CGPoint, radius: CGFloat) -> UIBezierPath {
         UIBezierPath(arcCenter: center, radius: radius, startAngle: 0, endAngle: 2 * .pi, clockwise: true)
     }

@@ -1,4 +1,4 @@
-// [플러그인 Kotlin] 마커 이미지(내 위치, 장소 번호 핀, 출발·도착 말풍선)를 코드로 그린다. 경로 색 상수도 여기.
+// [플러그인 Kotlin] 마커 이미지(내 위치·방향 콘, 장소 번호 핀, 출발·도착 말풍선)를 코드로 그린다. 경로 색 상수도 여기.
 // iOS MarkerImages.swift와 같은 모양·크기. 카카오 라벨은 Bitmap만 받는다.
 
 package com.sintaek.kakao_map_view
@@ -9,7 +9,9 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.RadialGradient
 import android.graphics.RectF
+import android.graphics.Shader
 import android.graphics.Typeface
 import kotlin.math.ceil
 
@@ -75,6 +77,31 @@ internal object MarkerBitmaps {
         canvas.drawPath(path, outline)
         return bitmap
     }
+
+    /**
+     * 정지 중 폰이 향한 방향. 80dp, 가운데에서 위(북쪽)로 퍼지는 부채꼴(70°). 회전은 라벨이 맡는다.
+     * 가운데는 진하고 바깥으로 갈수록 투명해진다. 내 위치 점 아래에 깔린다.
+     */
+    fun headingCone(context: Context): Bitmap {
+        val density = context.resources.displayMetrics.density
+        val size = 80 * density
+        val bitmap = Bitmap.createBitmap(ceil(size).toInt(), ceil(size).toInt(), Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val center = size / 2
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = RadialGradient(
+                center, center, center,
+                (MapColors.PRIMARY and 0x00FFFFFF) or (0x80 shl 24),
+                MapColors.PRIMARY and 0x00FFFFFF,
+                Shader.TileMode.CLAMP,
+            )
+        }
+        // Canvas 각도는 오른쪽이 0°이고 시계방향이다. 위쪽(270°)을 가운데로 양옆 35°씩.
+        canvas.drawArc(0f, 0f, size, size, 270f - CONE_SPREAD / 2, CONE_SPREAD, true, paint)
+        return bitmap
+    }
+
+    private const val CONE_SPREAD = 70f
 
     /** 아래 꼭짓점이 장소 위치를 가리키는 번호 핀. 기본: 흰 바탕·파란 테두리, 선택: 파란 바탕·흰 번호·1.25배 */
     fun placePin(context: Context, number: Int, selected: Boolean, tint: Int): MarkerImage {

@@ -115,6 +115,24 @@ Native KakaoMapViewPlugin (등록) → KakaoMapViewFactory.create
 | SDK 저장소 | SPM `KakaoMapsSDK-SPM` | 카카오 maven 저장소. **앱의 `android/build.gradle.kts`에도 추가해야 한다** |
 | FlutterApi 호출 | `Task { try? await … }` | Pigeon Kotlin이 `suspend` → 코루틴(`Dispatchers.Main`) |
 | fitCamera 계산 | 비율로 영역 확장 | 네이티브 Android 앱의 `CameraFit.kt` (보이는 띠 기준) |
+| 내 위치 마커 이동 | `Poi.moveAt` / `rotateAt` (duration ms) | `Label.moveTo` / `rotateTo` (duration ms) |
+
+**내 위치 마커 애니메이션** — Dart는 `updateMyLocation(MyLocation)`만 보내고, 부드럽게 잇는 건 네이티브가 한다.
+- 이동·회전 모두 1초(GPS 갱신 간격)에 걸쳐 이전 값에서 새 값으로. 짧으면 매초 멈칫하고, 길면 다음 갱신이 중간에 끊는다.
+- 회전은 직전 각도에서 가까운 쪽으로 이어 붙인다(`continuousRoll` / `continuousRotation`). 359° → 1°는 +2°만 돈다.
+- 100m 넘게 뛰면(GPS 재수신, 가상 위치 변경) 애니메이션 없이 바로 옮긴다. 처음 그릴 때도 바로.
+
+**방향 콘(나침반)** — 정지 중(bearing 없음)이면 점 아래에 폰이 향한 방향을 부채꼴로 그린다. 움직이는 중엔 화살표만.
+- 나침반 값은 초당 여러 번 바뀌어서 Dart로 보내지 않는다. 플러그인 안의 `CompassHeading`이 읽어 바로 콘을 돌린다. Dart·Pigeon 변경 없음.
+- 센서는 내 위치 마커가 있고 앱이 화면에 있을 때만 켠다(iOS `setActive`, Android Activity resume/pause).
+
+| | iOS (`CompassHeading.swift`) | Android (`CompassHeading.kt`) |
+|---|---|---|
+| 센서 | `CLLocationManager` heading (`headingFilter` 1°) | 회전 벡터 센서 `TYPE_ROTATION_VECTOR` |
+| 진북 | OS가 `trueHeading`으로 줌 | 자북 + `GeomagneticField` 편각(서울 약 -9°) |
+| 떨림 | OS가 보정 | sin·cos 저역 통과 필터 + 1° 미만 변화 무시 |
+| 가로 화면 | `headingOrientation`을 기기 방향에 맞춤 | `remapCoordinateSystem` |
+| 시뮬레이터 | 나침반 없음 → 콘 안 나옴 (실기기 확인) | 에뮬레이터 가상 센서로 확인 가능: `adb emu sensor set magnetic-field x:y:z` |
 - **인터페이스를 바꿀 때**: `pigeons/messages.dart` 수정 → `dart run pigeon --input pigeons/messages.dart`
   → 컴파일 에러가 나는 Swift/Kotlin 구현을 채운다. `*.g.*` 파일은 직접 고치지 않는다.
 - **Xcode에서 보기**: `ios/Runner.xcworkspace` → Package Dependencies → `kakao_map_view (local)`.

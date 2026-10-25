@@ -1,5 +1,5 @@
 // [플러그인 Kotlin] Flutter 화면에 끼워 넣는 네이티브 지도 1개 = KakaoMapPlatformView 1개. iOS KakaoMapPlatformView.swift와 대응.
-// 하는 일: ① MapView 생성·시작 ② Pigeon 채널 연결(HostApi 수신, FlutterApi 송신) ③ Activity resume/pause를 MapView에 전달.
+// 하는 일: ① MapView 생성·시작 ② Pigeon 채널 연결(HostApi 수신, FlutterApi 송신) ③ Activity resume/pause를 MapView·나침반에 전달.
 // 팩토리(KakaoMapViewFactory)는 Flutter 엔진이 Dart의 AndroidView를 만들 때 부른다.
 
 package com.sintaek.kakao_map_view
@@ -85,9 +85,16 @@ internal class KakaoMapPlatformView(
     }
 
     // Activity 생명주기 → MapView. 백그라운드에서는 렌더링을 멈춘다(iOS의 엔진 pause와 같은 역할).
-    override fun onResume(owner: LifecycleOwner) = mapView.resume()
+    // 나침반 센서도 같이 켜고 끈다.
+    override fun onResume(owner: LifecycleOwner) {
+        mapView.resume()
+        controller?.setActive(true)
+    }
 
-    override fun onPause(owner: LifecycleOwner) = mapView.pause()
+    override fun onPause(owner: LifecycleOwner) {
+        mapView.pause()
+        controller?.setActive(false)
+    }
 
     // KakaoMapEvents → Pigeon FlutterApi
     override fun mapDidFail(message: String) = send { flutterApi.onMapError(message) }
