@@ -27,11 +27,12 @@ import com.kakao.vectormap.route.RouteLineStyles
 import com.kakao.vectormap.route.RouteLineStylesSet
 import kotlin.math.PI
 import com.kakao.vectormap.LatLng as KakaoLatLng
+import com.kakao.vectormap.camera.CameraPosition as KakaoCameraPosition
 
 /** 지도에서 Dart로 올려 보내는 이벤트. [KakaoMapPlatformView]가 Pigeon FlutterApi로 전달한다. */
 internal interface KakaoMapEvents {
     fun mapDidFail(message: String)
-    fun cameraDidStop(center: LatLng)
+    fun cameraDidStop(position: CameraPosition)
     fun placeMarkerTapped(id: String)
 }
 
@@ -91,8 +92,8 @@ internal class KakaoMapController(
             events.placeMarkerTapped(label.labelId)
             true
         }
-        map.setOnCameraMoveEndListener { _, position, _ -> events.cameraDidStop(position.position.toPigeon()) }
-        map.cameraPosition?.let { events.cameraDidStop(it.position.toPigeon()) }
+        map.setOnCameraMoveEndListener { _, position, _ -> events.cameraDidStop(position.toPigeon()) }
+        map.cameraPosition?.let { events.cameraDidStop(it.toPigeon()) }
     }
 
     /** KakaoMapPlatformView.dispose에서 부른다. 지도가 사라진 뒤 리스너가 불리지 않게 끊는다. */
@@ -269,3 +270,5 @@ internal class KakaoMapController(
 private fun LatLng.toKakao(): KakaoLatLng = KakaoLatLng.from(latitude, longitude)
 
 private fun KakaoLatLng.toPigeon() = LatLng(latitude = latitude, longitude = longitude)
+
+private fun KakaoCameraPosition.toPigeon() = CameraPosition(center = position.toPigeon(), zoom = zoomLevel.toLong())

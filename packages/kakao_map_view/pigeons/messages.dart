@@ -18,6 +18,14 @@ class LatLng {
   double longitude;
 }
 
+/// 카메라가 멈췄을 때의 위치. 화면 중심과 줌 레벨.
+class CameraPosition {
+  CameraPosition({required this.center, required this.zoom});
+
+  LatLng center;
+  int zoom;
+}
+
 /// 카메라를 여러 지점에 맞출 때 화면의 어떤 부분이 UI에 가려지는지.
 enum MapFitLayout {
   /// 위: 검색창+칩, 아래: 큰 하단 시트
@@ -99,8 +107,8 @@ abstract class KakaoMapFlutterApi {
   /// 인증 실패·지도 로드 실패.
   void onMapError(String message);
 
-  /// 카메라가 멈췄을 때 화면 중심 좌표.
-  void onCameraIdle(LatLng center);
+  /// 카메라가 멈췄을 때 화면 중심 좌표와 줌.
+  void onCameraIdle(CameraPosition position);
 
   void onMarkerTapped(String id);
 }

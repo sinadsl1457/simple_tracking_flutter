@@ -10,7 +10,7 @@ import UIKit
 protocol KakaoMapEvents: AnyObject {
     func mapDidBecomeReady()
     func mapDidFail(_ message: String)
-    func cameraDidStop(at center: LatLng)
+    func cameraDidStop(at position: CameraPosition)
     func placeMarkerTapped(id: String)
 }
 
@@ -187,7 +187,10 @@ final class KakaoMapController: NSObject {
         guard let map else { return }
         let rect = map.viewRect
         let coordinate = map.getPosition(CGPoint(x: rect.midX, y: rect.midY)).wgsCoord
-        events?.cameraDidStop(at: LatLng(latitude: coordinate.latitude, longitude: coordinate.longitude))
+        events?.cameraDidStop(at: CameraPosition(
+            center: LatLng(latitude: coordinate.latitude, longitude: coordinate.longitude),
+            zoom: Int64(map.zoomLevel)
+        ))
     }
 
     private func placeStyleID(number: Int, selected: Bool, labelManager: LabelManager) -> String {

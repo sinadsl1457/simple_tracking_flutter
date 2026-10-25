@@ -272,6 +272,51 @@ data class LatLng (
 }
 
 /**
+ * 카메라가 멈췄을 때의 위치. 화면 중심과 줌 레벨.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class CameraPosition (
+  val center: LatLng,
+  val zoom: Long
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): CameraPosition {
+      val center = pigeonVar_list[0] as LatLng
+      val zoom = pigeonVar_list[1] as Long
+      return CameraPosition(center, zoom)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      center,
+      zoom,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as CameraPosition
+    return MessagesPigeonUtils.deepEquals(this.center, other.center) && MessagesPigeonUtils.deepEquals(this.zoom, other.zoom)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.center)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.zoom)
+    return result
+  }
+  override fun toString(): String {
+    return "CameraPosition(center=$center, zoom=$zoom)"
+  }
+}
+
+/**
  * 지도에 표시할 검색 결과 하나.
  *
  * Generated class from Pigeon that represents data sent in messages.
@@ -481,20 +526,25 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
       }
       132.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          PlaceMarker.fromList(it)
+          CameraPosition.fromList(it)
         }
       }
       133.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          RouteLine.fromList(it)
+          PlaceMarker.fromList(it)
         }
       }
       134.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          RouteOverlay.fromList(it)
+          RouteLine.fromList(it)
         }
       }
       135.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          RouteOverlay.fromList(it)
+        }
+      }
+      136.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           MyLocation.fromList(it)
         }
@@ -516,20 +566,24 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
         stream.write(131)
         writeValue(stream, value.toList())
       }
-      is PlaceMarker -> {
+      is CameraPosition -> {
         stream.write(132)
         writeValue(stream, value.toList())
       }
-      is RouteLine -> {
+      is PlaceMarker -> {
         stream.write(133)
         writeValue(stream, value.toList())
       }
-      is RouteOverlay -> {
+      is RouteLine -> {
         stream.write(134)
         writeValue(stream, value.toList())
       }
-      is MyLocation -> {
+      is RouteOverlay -> {
         stream.write(135)
+        writeValue(stream, value.toList())
+      }
+      is MyLocation -> {
+        stream.write(136)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -710,14 +764,14 @@ class KakaoMapFlutterApi(private val binaryMessenger: BinaryMessenger, private v
       }
     }
   }
-  /** 카메라가 멈췄을 때 화면 중심 좌표. */
-  suspend fun onCameraIdle(centerArg: LatLng)
+  /** 카메라가 멈췄을 때 화면 중심 좌표와 줌. */
+  suspend fun onCameraIdle(positionArg: CameraPosition)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
     return suspendCancellableCoroutine { continuation ->
       val channelName = "dev.flutter.pigeon.kakao_map_view.KakaoMapFlutterApi.onCameraIdle$separatedMessageChannelSuffix"
       val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-      channel.send(listOf(centerArg)) {
+      channel.send(listOf(positionArg)) {
         if (it is List<*>) {
           if (it.size > 1) {
             continuation.resumeWithException(FlutterError(it[0] as String, it[1] as String, it[2] as String?))

@@ -7,6 +7,7 @@ export 'src/kakao_map_controller.dart';
 export 'src/kakao_map_view.dart';
 export 'src/messages.g.dart'
     show
+        CameraPosition,
         LatLng,
         MapFitLayout,
         MyLocation,

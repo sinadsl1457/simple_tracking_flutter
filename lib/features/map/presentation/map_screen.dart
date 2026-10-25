@@ -56,8 +56,11 @@ class _MapScreenState extends State<MapScreen> {
   /// 지도가 준비되기 전에 들어온 카메라 명령. 마지막 것만 의미가 있다.
   Future<void> Function(KakaoMapController)? _pendingCamera;
 
-  /// 카메라가 멈출 때마다 갱신되는 화면 중심. 카테고리 검색 기준이 된다.
-  GeoPoint? _cameraCenter;
+  /// 카메라가 멈출 때마다 갱신되는 중심·줌. 중심은 카테고리 검색 기준이 된다.
+  CameraPosition? _cameraPosition;
+
+  /// 길찾기를 시작하기 직전의 카메라. 경로를 닫으면 여기로 돌아간다.
+  CameraPosition? _cameraBeforeRoute;
   String? _mapError;
   String? _toast;
   SheetDetent _placeSheetDetent = SheetDetent.medium;
@@ -138,7 +141,7 @@ class _MapScreenState extends State<MapScreen> {
 
   /// 카테고리 검색 기준: 지금 보고 있는 지도 중심 → 내 위치 → 기본 위치.
   GeoPoint get _searchCenter =>
-      _cameraCenter ??
+      _cameraPosition?.center.toGeoPoint() ??
       _mapCubit.state.myLocation?.point ??
       MapScreen._defaultCenter;
 
@@ -191,10 +194,15 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  /// 길찾기 카드의 ✕. 보고 있던 장소가 있으면 그 장소로 카메라를 돌려준다.
+  /// 길찾기 카드의 ✕. 카메라를 길찾기 시작 전 위치·줌으로 돌려준다.
+  /// 경로 전체를 보려고 줌 아웃한 상태로 남지 않게 한다.
   void _closeRoute() {
     _route.closeRoute();
-    if (_search.state.selectedPlace case final place?) {
+    final before = _cameraBeforeRoute;
+    _cameraBeforeRoute = null;
+    if (before != null) {
+      _camera((m) => m.moveCamera(before.center, zoom: before.zoom));
+    } else if (_search.state.selectedPlace case final place?) {
       _moveCamera(place.location, zoom: 17);
     }
   }
@@ -303,7 +311,11 @@ class _MapScreenState extends State<MapScreen> {
         // 길찾기 중에는 검색 핀을 숨긴다(출발·도착 말풍선만 보이게).
         BlocListener<RouteCubit, RouteState>(
           listenWhen: (a, b) => a.isActive != b.isActive,
-          listener: (_, _) => _syncPlaceMarkers(),
+          listener: (_, s) {
+            // 경로에 맞춰 줌 아웃하기 전에 지금 카메라를 기억해 둔다(_closeRoute에서 복원).
+            if (s.isActive) _cameraBeforeRoute = _cameraPosition;
+            _syncPlaceMarkers();
+          },
         ),
         // 경로(선택한 수단·대중교통 후보)가 바뀌면 지도 선을 다시 그린다.
         BlocListener<RouteCubit, RouteState>(
@@ -357,7 +369,7 @@ class _MapScreenState extends State<MapScreen> {
             child: KakaoMapView(
               appKey: AppConfig.kakaoNativeAppKey,
               onMapCreated: _onMapCreated,
-              onCameraIdle: (center) => _cameraCenter = center.toGeoPoint(),
+              onCameraIdle: (position) => _cameraPosition = position,
               onMarkerTapped: _search.selectPlace,
               onError: (message) => setState(() => _mapError = message),
             ),

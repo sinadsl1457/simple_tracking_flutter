@@ -92,7 +92,7 @@ internal class KakaoMapPlatformView(
     // KakaoMapEvents → Pigeon FlutterApi
     override fun mapDidFail(message: String) = send { flutterApi.onMapError(message) }
 
-    override fun cameraDidStop(center: LatLng) = send { flutterApi.onCameraIdle(center) }
+    override fun cameraDidStop(position: CameraPosition) = send { flutterApi.onCameraIdle(position) }
 
     override fun placeMarkerTapped(id: String) = send { flutterApi.onMarkerTapped(id) }
 

@@ -171,6 +171,52 @@ class LatLng {
   }
 }
 
+/// 카메라가 멈췄을 때의 위치. 화면 중심과 줌 레벨.
+class CameraPosition {
+  CameraPosition({required this.center, required this.zoom});
+
+  LatLng center;
+
+  int zoom;
+
+  List<Object?> _toList() {
+    return <Object?>[center, zoom];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static CameraPosition decode(Object result) {
+    result as List<Object?>;
+    return CameraPosition(
+      center: result[0]! as LatLng,
+      zoom: result[1]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! CameraPosition || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(center, other.center) && _deepEquals(zoom, other.zoom);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'CameraPosition(center: $center, zoom: $zoom)';
+  }
+}
+
 /// 지도에 표시할 검색 결과 하나.
 class PlaceMarker {
   PlaceMarker({required this.id, required this.point, required this.number});
@@ -389,17 +435,20 @@ class _PigeonCodec extends StandardMessageCodec {
     } else if (value is LatLng) {
       buffer.putUint8(131);
       writeValue(buffer, value.encode());
-    } else if (value is PlaceMarker) {
+    } else if (value is CameraPosition) {
       buffer.putUint8(132);
       writeValue(buffer, value.encode());
-    } else if (value is RouteLine) {
+    } else if (value is PlaceMarker) {
       buffer.putUint8(133);
       writeValue(buffer, value.encode());
-    } else if (value is RouteOverlay) {
+    } else if (value is RouteLine) {
       buffer.putUint8(134);
       writeValue(buffer, value.encode());
-    } else if (value is MyLocation) {
+    } else if (value is RouteOverlay) {
       buffer.putUint8(135);
+      writeValue(buffer, value.encode());
+    } else if (value is MyLocation) {
+      buffer.putUint8(136);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -418,12 +467,14 @@ class _PigeonCodec extends StandardMessageCodec {
       case 131:
         return LatLng.decode(readValue(buffer)!);
       case 132:
-        return PlaceMarker.decode(readValue(buffer)!);
+        return CameraPosition.decode(readValue(buffer)!);
       case 133:
-        return RouteLine.decode(readValue(buffer)!);
+        return PlaceMarker.decode(readValue(buffer)!);
       case 134:
-        return RouteOverlay.decode(readValue(buffer)!);
+        return RouteLine.decode(readValue(buffer)!);
       case 135:
+        return RouteOverlay.decode(readValue(buffer)!);
+      case 136:
         return MyLocation.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -567,8 +618,8 @@ abstract class KakaoMapFlutterApi {
   /// 인증 실패·지도 로드 실패.
   void onMapError(String message);
 
-  /// 카메라가 멈췄을 때 화면 중심 좌표.
-  void onCameraIdle(LatLng center);
+  /// 카메라가 멈췄을 때 화면 중심 좌표와 줌.
+  void onCameraIdle(CameraPosition position);
 
   void onMarkerTapped(String id);
 
@@ -639,9 +690,9 @@ abstract class KakaoMapFlutterApi {
       } else {
         pigeonVar_channel.setMessageHandler((Object? message) async {
           final List<Object?> args = message! as List<Object?>;
-          final LatLng arg_center = args[0]! as LatLng;
+          final CameraPosition arg_position = args[0]! as CameraPosition;
           try {
-            api.onCameraIdle(arg_center);
+            api.onCameraIdle(arg_position);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

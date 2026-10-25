@@ -69,8 +69,8 @@ extension KakaoMapPlatformView: KakaoMapEvents {
         Task { try? await flutterApi.onMapError(message: message) }
     }
 
-    func cameraDidStop(at center: LatLng) {
-        Task { try? await flutterApi.onCameraIdle(center: center) }
+    func cameraDidStop(at position: CameraPosition) {
+        Task { try? await flutterApi.onCameraIdle(position: position) }
     }
 
     func placeMarkerTapped(id: String) {
