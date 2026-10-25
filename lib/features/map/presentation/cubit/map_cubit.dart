@@ -72,6 +72,10 @@ class MapCubit extends Cubit<MapState> with EffectEmitter<MapState, MapEffect> {
     _apply(await _locationRepository.requestPermission());
   }
 
+  /// 설정 안내 대화상자에서 "설정 열기"를 누르면 화면이 부른다.
+  /// 돌아오면 onBecameActive가 바뀐 권한을 반영한다.
+  Future<void> openAppSettings() => _locationRepository.openAppSettings();
+
   void _apply(LocationPermission permission) {
     final granted = permission == LocationPermission.authorized;
     if (granted) {

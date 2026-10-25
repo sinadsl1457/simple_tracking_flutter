@@ -35,7 +35,6 @@ import 'package:simple_tracking/features/route/presentation/widgets/route_header
 import 'package:simple_tracking/features/route/presentation/widgets/route_summary_card.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/transit_route_list.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/travel_mode_tabs.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// 지도 화면. 세 Cubit(내 위치·검색·길찾기)의 상태를 지도와 UI에 반영한다.
 class MapScreen extends StatefulWidget {
@@ -207,7 +206,7 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  /// 위치 권한이 이미 거부된 경우의 안내 대화상자. "설정 열기"는 iOS 설정 앱의 이 앱 화면으로 간다.
+  /// 위치 권한이 이미 거부된 경우의 안내 대화상자. "설정 열기"는 설정 앱의 이 앱 화면으로 간다.
   Future<void> _showSettingsPrompt() async {
     final open = await showDialog<bool>(
       context: context,
@@ -226,7 +225,7 @@ class _MapScreenState extends State<MapScreen> {
         ],
       ),
     );
-    if (open ?? false) await launchUrl(Uri.parse('app-settings:'));
+    if (open ?? false) await _mapCubit.openAppSettings();
   }
 
   // ── 이펙트 ──

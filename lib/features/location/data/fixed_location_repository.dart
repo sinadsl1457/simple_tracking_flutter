@@ -47,6 +47,10 @@ class FixedLocationRepository implements LocationRepository {
     return controller.stream;
   }
 
+  /// 권한이 항상 허용이라 열 일이 없다.
+  @override
+  Future<void> openAppSettings() async {}
+
   UserLocation _location() =>
       UserLocation(point: point, accuracyMeters: 5, timestamp: DateTime.now());
 }

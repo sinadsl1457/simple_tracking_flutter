@@ -17,5 +17,9 @@ sealed class Failure with _$Failure implements Exception {
       RouteNotFoundFailure;
   const factory Failure.locationPermissionDenied() =
       LocationPermissionDeniedFailure;
+
+  /// 권한은 있지만 기기의 위치 서비스(GPS)가 꺼져 있다.
+  const factory Failure.locationServiceDisabled() =
+      LocationServiceDisabledFailure;
   const factory Failure.unknown() = UnknownFailure;
 }

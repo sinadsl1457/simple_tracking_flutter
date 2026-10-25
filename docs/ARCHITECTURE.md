@@ -19,7 +19,7 @@ lib/
 │  ├ network/  safe_api_call    HTTP 오류 → Failure 변환, 카카오 인증 헤더
 │  └ presentation/              EffectEmitter(일회성 이벤트), 하단 시트, 토스트, 포맷터
 └ features/                     기능별. 각 기능 안에 domain / data / presentation
-   ├ location/   내 위치 (지금은 고정 위치. 7단계에서 GPS)
+   ├ location/   내 위치 (GPS: geolocator / FIXED_LOCATION이 있으면 고정 좌표)
    ├ place/      장소 검색, 최근 검색어, 최근 장소
    ├ route/      길찾기 (자동차·도보·대중교통), 길찾기 준비 화면, 출발지·도착지 선택
    └ map/        지도 화면(MapScreen) — 위 세 기능을 조립하는 곳
@@ -129,7 +129,19 @@ flutter run --dart-define-from-file=env/dev.json     # 키가 없으면 "API 키
 dart run build_runner build -d                       # freezed / json / retrofit / injectable 생성
 flutter test
 ```
-VS Code는 `.vscode/launch.json`(F5)에 위 옵션과 시뮬레이터가 들어 있다.
+VS Code는 `.vscode/launch.json`(F5)에 위 옵션과 시뮬레이터가 들어 있다. 터미널은 `make run` / `make run-android`.
+
+### 내 위치: 고정 좌표 vs 실제 GPS
+`location_module.dart`가 고른다. `FIXED_LOCATION`("위도,경도")이 있으면 `FixedLocationRepository`, 없으면 `GpsLocationRepository`(geolocator).
+- `make run-gps` / `make run-android-gps`: env 파일은 그대로 두고 `FIXED_LOCATION`만 비워 GPS로 실행한다.
+- 가상 위치 넣기: iOS `xcrun simctl location <udid> set 위도,경도`, Android `adb emu geo fix 경도 위도`(순서 주의).
+- 시뮬레이터·에뮬레이터는 **속도를 0으로 보내서** 이동 화살표가 안 나온다(0.5m/s 미만이면 방향을 버리는 규칙). 화살표는 실기기로 확인.
+
+| geolocator 권한 | 뜻 | 도메인 `LocationPermission` |
+|---|---|---|
+| `denied` | 아직 물어볼 수 있음 (iOS 미결정, Android 한 번 거절) | `notDetermined` → 팝업 |
+| `deniedForever` | 팝업이 더 안 뜸 | `denied` → 설정 앱 안내 |
+| `whileInUse`, `always` | 허용 | `authorized` |
 
 ## 7. 알아 두면 좋은 함정 (실제로 겪은 것)
 

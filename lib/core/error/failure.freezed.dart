@@ -56,7 +56,7 @@ extension FailurePatterns on Failure {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( NetworkFailure value)?  network,TResult Function( UnauthorizedFailure value)?  unauthorized,TResult Function( QuotaExceededFailure value)?  quotaExceeded,TResult Function( ServerFailure value)?  server,TResult Function( EmptyQueryFailure value)?  emptyQuery,TResult Function( DestinationTooCloseFailure value)?  destinationTooClose,TResult Function( RouteNotFoundFailure value)?  routeNotFound,TResult Function( LocationPermissionDeniedFailure value)?  locationPermissionDenied,TResult Function( UnknownFailure value)?  unknown,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( NetworkFailure value)?  network,TResult Function( UnauthorizedFailure value)?  unauthorized,TResult Function( QuotaExceededFailure value)?  quotaExceeded,TResult Function( ServerFailure value)?  server,TResult Function( EmptyQueryFailure value)?  emptyQuery,TResult Function( DestinationTooCloseFailure value)?  destinationTooClose,TResult Function( RouteNotFoundFailure value)?  routeNotFound,TResult Function( LocationPermissionDeniedFailure value)?  locationPermissionDenied,TResult Function( LocationServiceDisabledFailure value)?  locationServiceDisabled,TResult Function( UnknownFailure value)?  unknown,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case NetworkFailure() when network != null:
@@ -67,7 +67,8 @@ return server(_that);case EmptyQueryFailure() when emptyQuery != null:
 return emptyQuery(_that);case DestinationTooCloseFailure() when destinationTooClose != null:
 return destinationTooClose(_that);case RouteNotFoundFailure() when routeNotFound != null:
 return routeNotFound(_that);case LocationPermissionDeniedFailure() when locationPermissionDenied != null:
-return locationPermissionDenied(_that);case UnknownFailure() when unknown != null:
+return locationPermissionDenied(_that);case LocationServiceDisabledFailure() when locationServiceDisabled != null:
+return locationServiceDisabled(_that);case UnknownFailure() when unknown != null:
 return unknown(_that);case _:
   return orElse();
 
@@ -86,7 +87,7 @@ return unknown(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( NetworkFailure value)  network,required TResult Function( UnauthorizedFailure value)  unauthorized,required TResult Function( QuotaExceededFailure value)  quotaExceeded,required TResult Function( ServerFailure value)  server,required TResult Function( EmptyQueryFailure value)  emptyQuery,required TResult Function( DestinationTooCloseFailure value)  destinationTooClose,required TResult Function( RouteNotFoundFailure value)  routeNotFound,required TResult Function( LocationPermissionDeniedFailure value)  locationPermissionDenied,required TResult Function( UnknownFailure value)  unknown,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( NetworkFailure value)  network,required TResult Function( UnauthorizedFailure value)  unauthorized,required TResult Function( QuotaExceededFailure value)  quotaExceeded,required TResult Function( ServerFailure value)  server,required TResult Function( EmptyQueryFailure value)  emptyQuery,required TResult Function( DestinationTooCloseFailure value)  destinationTooClose,required TResult Function( RouteNotFoundFailure value)  routeNotFound,required TResult Function( LocationPermissionDeniedFailure value)  locationPermissionDenied,required TResult Function( LocationServiceDisabledFailure value)  locationServiceDisabled,required TResult Function( UnknownFailure value)  unknown,}){
 final _that = this;
 switch (_that) {
 case NetworkFailure():
@@ -97,7 +98,8 @@ return server(_that);case EmptyQueryFailure():
 return emptyQuery(_that);case DestinationTooCloseFailure():
 return destinationTooClose(_that);case RouteNotFoundFailure():
 return routeNotFound(_that);case LocationPermissionDeniedFailure():
-return locationPermissionDenied(_that);case UnknownFailure():
+return locationPermissionDenied(_that);case LocationServiceDisabledFailure():
+return locationServiceDisabled(_that);case UnknownFailure():
 return unknown(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
@@ -112,7 +114,7 @@ return unknown(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( NetworkFailure value)?  network,TResult? Function( UnauthorizedFailure value)?  unauthorized,TResult? Function( QuotaExceededFailure value)?  quotaExceeded,TResult? Function( ServerFailure value)?  server,TResult? Function( EmptyQueryFailure value)?  emptyQuery,TResult? Function( DestinationTooCloseFailure value)?  destinationTooClose,TResult? Function( RouteNotFoundFailure value)?  routeNotFound,TResult? Function( LocationPermissionDeniedFailure value)?  locationPermissionDenied,TResult? Function( UnknownFailure value)?  unknown,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( NetworkFailure value)?  network,TResult? Function( UnauthorizedFailure value)?  unauthorized,TResult? Function( QuotaExceededFailure value)?  quotaExceeded,TResult? Function( ServerFailure value)?  server,TResult? Function( EmptyQueryFailure value)?  emptyQuery,TResult? Function( DestinationTooCloseFailure value)?  destinationTooClose,TResult? Function( RouteNotFoundFailure value)?  routeNotFound,TResult? Function( LocationPermissionDeniedFailure value)?  locationPermissionDenied,TResult? Function( LocationServiceDisabledFailure value)?  locationServiceDisabled,TResult? Function( UnknownFailure value)?  unknown,}){
 final _that = this;
 switch (_that) {
 case NetworkFailure() when network != null:
@@ -123,7 +125,8 @@ return server(_that);case EmptyQueryFailure() when emptyQuery != null:
 return emptyQuery(_that);case DestinationTooCloseFailure() when destinationTooClose != null:
 return destinationTooClose(_that);case RouteNotFoundFailure() when routeNotFound != null:
 return routeNotFound(_that);case LocationPermissionDeniedFailure() when locationPermissionDenied != null:
-return locationPermissionDenied(_that);case UnknownFailure() when unknown != null:
+return locationPermissionDenied(_that);case LocationServiceDisabledFailure() when locationServiceDisabled != null:
+return locationServiceDisabled(_that);case UnknownFailure() when unknown != null:
 return unknown(_that);case _:
   return null;
 
@@ -141,7 +144,7 @@ return unknown(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  network,TResult Function()?  unauthorized,TResult Function()?  quotaExceeded,TResult Function( int code)?  server,TResult Function()?  emptyQuery,TResult Function()?  destinationTooClose,TResult Function( String reason)?  routeNotFound,TResult Function()?  locationPermissionDenied,TResult Function()?  unknown,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  network,TResult Function()?  unauthorized,TResult Function()?  quotaExceeded,TResult Function( int code)?  server,TResult Function()?  emptyQuery,TResult Function()?  destinationTooClose,TResult Function( String reason)?  routeNotFound,TResult Function()?  locationPermissionDenied,TResult Function()?  locationServiceDisabled,TResult Function()?  unknown,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case NetworkFailure() when network != null:
 return network();case UnauthorizedFailure() when unauthorized != null:
@@ -151,7 +154,8 @@ return server(_that.code);case EmptyQueryFailure() when emptyQuery != null:
 return emptyQuery();case DestinationTooCloseFailure() when destinationTooClose != null:
 return destinationTooClose();case RouteNotFoundFailure() when routeNotFound != null:
 return routeNotFound(_that.reason);case LocationPermissionDeniedFailure() when locationPermissionDenied != null:
-return locationPermissionDenied();case UnknownFailure() when unknown != null:
+return locationPermissionDenied();case LocationServiceDisabledFailure() when locationServiceDisabled != null:
+return locationServiceDisabled();case UnknownFailure() when unknown != null:
 return unknown();case _:
   return orElse();
 
@@ -170,7 +174,7 @@ return unknown();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  network,required TResult Function()  unauthorized,required TResult Function()  quotaExceeded,required TResult Function( int code)  server,required TResult Function()  emptyQuery,required TResult Function()  destinationTooClose,required TResult Function( String reason)  routeNotFound,required TResult Function()  locationPermissionDenied,required TResult Function()  unknown,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  network,required TResult Function()  unauthorized,required TResult Function()  quotaExceeded,required TResult Function( int code)  server,required TResult Function()  emptyQuery,required TResult Function()  destinationTooClose,required TResult Function( String reason)  routeNotFound,required TResult Function()  locationPermissionDenied,required TResult Function()  locationServiceDisabled,required TResult Function()  unknown,}) {final _that = this;
 switch (_that) {
 case NetworkFailure():
 return network();case UnauthorizedFailure():
@@ -180,7 +184,8 @@ return server(_that.code);case EmptyQueryFailure():
 return emptyQuery();case DestinationTooCloseFailure():
 return destinationTooClose();case RouteNotFoundFailure():
 return routeNotFound(_that.reason);case LocationPermissionDeniedFailure():
-return locationPermissionDenied();case UnknownFailure():
+return locationPermissionDenied();case LocationServiceDisabledFailure():
+return locationServiceDisabled();case UnknownFailure():
 return unknown();}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -195,7 +200,7 @@ return unknown();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  network,TResult? Function()?  unauthorized,TResult? Function()?  quotaExceeded,TResult? Function( int code)?  server,TResult? Function()?  emptyQuery,TResult? Function()?  destinationTooClose,TResult? Function( String reason)?  routeNotFound,TResult? Function()?  locationPermissionDenied,TResult? Function()?  unknown,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  network,TResult? Function()?  unauthorized,TResult? Function()?  quotaExceeded,TResult? Function( int code)?  server,TResult? Function()?  emptyQuery,TResult? Function()?  destinationTooClose,TResult? Function( String reason)?  routeNotFound,TResult? Function()?  locationPermissionDenied,TResult? Function()?  locationServiceDisabled,TResult? Function()?  unknown,}) {final _that = this;
 switch (_that) {
 case NetworkFailure() when network != null:
 return network();case UnauthorizedFailure() when unauthorized != null:
@@ -205,7 +210,8 @@ return server(_that.code);case EmptyQueryFailure() when emptyQuery != null:
 return emptyQuery();case DestinationTooCloseFailure() when destinationTooClose != null:
 return destinationTooClose();case RouteNotFoundFailure() when routeNotFound != null:
 return routeNotFound(_that.reason);case LocationPermissionDeniedFailure() when locationPermissionDenied != null:
-return locationPermissionDenied();case UnknownFailure() when unknown != null:
+return locationPermissionDenied();case LocationServiceDisabledFailure() when locationServiceDisabled != null:
+return locationServiceDisabled();case UnknownFailure() when unknown != null:
 return unknown();case _:
   return null;
 
@@ -534,6 +540,38 @@ int get hashCode => runtimeType.hashCode;
 @override
 String toString() {
     return 'Failure.locationPermissionDenied()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class LocationServiceDisabledFailure implements Failure {
+  const LocationServiceDisabledFailure();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is LocationServiceDisabledFailure);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+    return 'Failure.locationServiceDisabled()';
 }
 
 

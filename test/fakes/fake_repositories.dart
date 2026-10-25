@@ -151,6 +151,7 @@ class FakeLocationRepository implements LocationRepository {
   final bool keepsStreamOpen;
   int requestCount = 0;
   int listenCount = 0;
+  int openSettingsCount = 0;
 
   @override
   Future<LocationPermission> permission() async => permissionStatus;
@@ -177,4 +178,7 @@ class FakeLocationRepository implements LocationRepository {
     );
     return controller.stream;
   }
+
+  @override
+  Future<void> openAppSettings() async => openSettingsCount++;
 }

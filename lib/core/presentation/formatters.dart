@@ -58,6 +58,7 @@ extension FailureMessage on Failure {
     DestinationTooCloseFailure() => '이미 목적지 근처에 있어요',
     RouteNotFoundFailure() => '경로를 찾을 수 없어요',
     LocationPermissionDeniedFailure() => '위치 권한이 필요해요',
+    LocationServiceDisabledFailure() => '기기의 위치 서비스가 꺼져 있어요',
     UnknownFailure() => '알 수 없는 오류가 발생했어요',
   };
 }

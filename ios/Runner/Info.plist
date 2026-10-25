@@ -6,6 +6,8 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>현재 위치를 지도에 표시하기 위해 사용합니다</string>
 	<key>CFBundleDisplayName</key>
 	<string>Simple Tracking</string>
 	<key>CFBundleExecutable</key>

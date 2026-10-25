@@ -192,5 +192,14 @@ void main() {
       expect(effects, isEmpty);
       expect(cubit.state.hasLocationPermission, isFalse);
     });
+
+    test('설정 열기는 저장소에 넘긴다', () async {
+      final repository = FakeLocationRepository(
+        permissionStatus: LocationPermission.denied,
+      );
+      await makeCubit(repository).openAppSettings();
+
+      expect(repository.openSettingsCount, 1);
+    });
   });
 }

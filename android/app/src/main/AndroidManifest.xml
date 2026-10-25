@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- 카카오 API·지도 타일. debug 매니페스트에만 있어서 release에도 넣는다. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 내 위치(geolocator). COARSE만 허용하면 대략 위치만 오고, 정확도 50m 필터에 걸릴 수 있다. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <application
         android:label="simple_tracking"
         android:name="${applicationName}"
