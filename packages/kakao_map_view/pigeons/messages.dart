@@ -80,6 +80,27 @@ class MyLocation {
   double? bearing;
 }
 
+/// 카메라가 내 위치를 따라가는 방식.
+enum MapFollowMode {
+  /// 따라가지 않는다.
+  none,
+
+  /// 카메라 중심이 내 위치 마커를 따라간다. 지도는 북쪽이 위.
+  follow,
+
+  /// 따라가면서 지도도 돌린다. 이동 중에는 진행 방향, 정지 중에는 폰이 향한 방향이 위.
+  followWithHeading,
+}
+
+/// 사용자가 지도를 직접 움직인 제스처. 따라가기 해제 판단에 쓴다.
+enum MapGesture {
+  /// 한 손가락 드래그.
+  pan,
+
+  /// 두 손가락 회전.
+  rotate,
+}
+
 /// Dart → Native 명령. 채널 이름 뒤에 viewId를 붙여(messageChannelSuffix)
 /// 지도 인스턴스마다 따로 연결한다.
 @HostApi()
@@ -96,6 +117,9 @@ abstract class KakaoMapHostApi {
 
   /// null이면 내 위치 마커를 지운다.
   void updateMyLocation(MyLocation? location);
+
+  /// 내 위치 마커가 아직 없으면 마커가 생길 때 따라가기 시작한다.
+  void setFollowMode(MapFollowMode mode);
 }
 
 /// Native → Dart 이벤트.
@@ -111,4 +135,7 @@ abstract class KakaoMapFlutterApi {
   void onCameraIdle(CameraPosition position);
 
   void onMarkerTapped(String id);
+
+  /// 사용자가 드래그·회전으로 카메라를 움직이기 시작했다(줌 제스처는 보내지 않는다).
+  void onUserGesture(MapGesture gesture);
 }

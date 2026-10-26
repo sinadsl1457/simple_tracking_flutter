@@ -125,6 +125,27 @@ enum MapFitLayout {
 
 enum RouteLineKind { car, walk, bus, subway }
 
+/// 카메라가 내 위치를 따라가는 방식.
+enum MapFollowMode {
+  /// 따라가지 않는다.
+  none,
+
+  /// 카메라 중심이 내 위치 마커를 따라간다. 지도는 북쪽이 위.
+  follow,
+
+  /// 따라가면서 지도도 돌린다. 이동 중에는 진행 방향, 정지 중에는 폰이 향한 방향이 위.
+  followWithHeading,
+}
+
+/// 사용자가 지도를 직접 움직인 제스처. 따라가기 해제 판단에 쓴다.
+enum MapGesture {
+  /// 한 손가락 드래그.
+  pan,
+
+  /// 두 손가락 회전.
+  rotate,
+}
+
 class LatLng {
   LatLng({required this.latitude, required this.longitude});
 
@@ -432,23 +453,29 @@ class _PigeonCodec extends StandardMessageCodec {
     } else if (value is RouteLineKind) {
       buffer.putUint8(130);
       writeValue(buffer, value.index);
-    } else if (value is LatLng) {
+    } else if (value is MapFollowMode) {
       buffer.putUint8(131);
-      writeValue(buffer, value.encode());
-    } else if (value is CameraPosition) {
+      writeValue(buffer, value.index);
+    } else if (value is MapGesture) {
       buffer.putUint8(132);
-      writeValue(buffer, value.encode());
-    } else if (value is PlaceMarker) {
+      writeValue(buffer, value.index);
+    } else if (value is LatLng) {
       buffer.putUint8(133);
       writeValue(buffer, value.encode());
-    } else if (value is RouteLine) {
+    } else if (value is CameraPosition) {
       buffer.putUint8(134);
       writeValue(buffer, value.encode());
-    } else if (value is RouteOverlay) {
+    } else if (value is PlaceMarker) {
       buffer.putUint8(135);
       writeValue(buffer, value.encode());
-    } else if (value is MyLocation) {
+    } else if (value is RouteLine) {
       buffer.putUint8(136);
+      writeValue(buffer, value.encode());
+    } else if (value is RouteOverlay) {
+      buffer.putUint8(137);
+      writeValue(buffer, value.encode());
+    } else if (value is MyLocation) {
+      buffer.putUint8(138);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -465,16 +492,22 @@ class _PigeonCodec extends StandardMessageCodec {
         final value = readValue(buffer) as int?;
         return value == null ? null : RouteLineKind.values[value];
       case 131:
-        return LatLng.decode(readValue(buffer)!);
+        final value = readValue(buffer) as int?;
+        return value == null ? null : MapFollowMode.values[value];
       case 132:
-        return CameraPosition.decode(readValue(buffer)!);
+        final value = readValue(buffer) as int?;
+        return value == null ? null : MapGesture.values[value];
       case 133:
-        return PlaceMarker.decode(readValue(buffer)!);
+        return LatLng.decode(readValue(buffer)!);
       case 134:
-        return RouteLine.decode(readValue(buffer)!);
+        return CameraPosition.decode(readValue(buffer)!);
       case 135:
-        return RouteOverlay.decode(readValue(buffer)!);
+        return PlaceMarker.decode(readValue(buffer)!);
       case 136:
+        return RouteLine.decode(readValue(buffer)!);
+      case 137:
+        return RouteOverlay.decode(readValue(buffer)!);
+      case 138:
         return MyLocation.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -606,6 +639,27 @@ class KakaoMapHostApi {
       isNullValid: true,
     );
   }
+
+  /// 내 위치 마커가 아직 없으면 마커가 생길 때 따라가기 시작한다.
+  Future<void> setFollowMode(MapFollowMode mode) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.setFollowMode$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[mode],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
 }
 
 /// Native → Dart 이벤트.
@@ -622,6 +676,9 @@ abstract class KakaoMapFlutterApi {
   void onCameraIdle(CameraPosition position);
 
   void onMarkerTapped(String id);
+
+  /// 사용자가 드래그·회전으로 카메라를 움직이기 시작했다(줌 제스처는 보내지 않는다).
+  void onUserGesture(MapGesture gesture);
 
   static void setUp(
     KakaoMapFlutterApi? api, {
@@ -718,6 +775,31 @@ abstract class KakaoMapFlutterApi {
           final String arg_id = args[0]! as String;
           try {
             api.onMarkerTapped(arg_id);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          } catch (e) {
+            return wrapResponse(
+              error: PlatformException(code: 'error', message: e.toString()),
+            );
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+        'dev.flutter.pigeon.kakao_map_view.KakaoMapFlutterApi.onUserGesture$messageChannelSuffix',
+        pigeonChannelCodec,
+        binaryMessenger: binaryMessenger,
+      );
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final MapGesture arg_gesture = args[0]! as MapGesture;
+          try {
+            api.onUserGesture(arg_gesture);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

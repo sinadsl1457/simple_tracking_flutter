@@ -95,6 +95,7 @@ class _MapScreenState extends State<MapScreen> {
     _map = map;
     // 준비 전에 쌓인 상태를 한 번에 맞춘다.
     unawaited(map.updateMyLocation(_mapCubit.state.myLocation?.toMyLocation()));
+    unawaited(map.setFollowMode(_mapCubit.state.followMode.toMapFollowMode()));
     _syncPlaceMarkers();
     unawaited(map.showRoute(_route.state.overlay));
     if (_pendingCamera case final command?) unawaited(command(map));
@@ -133,6 +134,13 @@ class _MapScreenState extends State<MapScreen> {
               selectedId: search.selectedPlace?.id,
             ),
     );
+  }
+
+  /// 내 위치가 아닌 곳(검색 결과, 경로)으로 카메라를 옮긴다. 따라가기를 먼저 꺼야
+  /// 트래킹이 카메라를 내 위치로 되돌리지 않는다.
+  void _cameraAwayFromMe(VoidCallback move) {
+    _mapCubit.stopFollowing();
+    move();
   }
 
   /// 화면 아래 토스트. 2초 뒤 자동으로 사라진다(Toast 위젯).
@@ -195,8 +203,10 @@ class _MapScreenState extends State<MapScreen> {
 
   /// 길찾기 카드의 ✕. 카메라를 길찾기 시작 전 위치·줌으로 돌려준다.
   /// 경로 전체를 보려고 줌 아웃한 상태로 남지 않게 한다.
+  /// 길찾기 중에 따라가기를 켰더라도 끈다. 켜 두면 복원한 카메라를 트래킹이 다시 끌고 간다.
   void _closeRoute() {
     _route.closeRoute();
+    _mapCubit.stopFollowing();
     final before = _cameraBeforeRoute;
     _cameraBeforeRoute = null;
     if (before != null) {
@@ -246,10 +256,14 @@ class _MapScreenState extends State<MapScreen> {
   /// PlaceSearchCubit effect → 결과에 카메라 맞추기, 선택 장소로 이동, 오류 토스트.
   void _onSearchEffect(BuildContext context, PlaceSearchEffect effect) =>
       switch (effect) {
-        FitPlacesEffect(:final points) => _fitCamera([
-          for (final p in points) p.toLatLng(),
-        ], MapFitLayout.searchResults),
-        FocusPlaceEffect(:final point) => _moveCamera(point, zoom: 17),
+        FitPlacesEffect(:final points) => _cameraAwayFromMe(
+          () => _fitCamera([
+            for (final p in points) p.toLatLng(),
+          ], MapFitLayout.searchResults),
+        ),
+        FocusPlaceEffect(:final point) => _cameraAwayFromMe(
+          () => _moveCamera(point, zoom: 17),
+        ),
         SearchFailureEffect(:final failure) => _showToast(failure.userMessage),
       };
 
@@ -257,11 +271,13 @@ class _MapScreenState extends State<MapScreen> {
   void _onRouteEffect(BuildContext context, RouteEffect effect) {
     switch (effect) {
       case FitRouteEffect(:final points):
-        _fitCamera(
-          points,
-          _route.state.selectedMode == TravelMode.transit
-              ? MapFitLayout.routeWithSheet
-              : MapFitLayout.route,
+        _cameraAwayFromMe(
+          () => _fitCamera(
+            points,
+            _route.state.selectedMode == TravelMode.transit
+                ? MapFitLayout.routeWithSheet
+                : MapFitLayout.route,
+          ),
         );
       case RouteFailureEffect(:final failure):
         unawaited(_map?.showRoute(null));
@@ -285,6 +301,12 @@ class _MapScreenState extends State<MapScreen> {
           listenWhen: (a, b) => a.myLocation != b.myLocation,
           listener: (_, s) =>
               unawaited(_map?.updateMyLocation(s.myLocation?.toMyLocation())),
+        ),
+        // 따라가기 모드를 지도에 알린다. 카메라 추적은 네이티브 트래킹이 한다.
+        BlocListener<MapCubit, MapState>(
+          listenWhen: (a, b) => a.followMode != b.followMode,
+          listener: (_, s) =>
+              unawaited(_map?.setFollowMode(s.followMode.toMapFollowMode())),
         ),
         // 검색 결과·선택이 바뀌면 번호 핀을 다시 그린다.
         BlocListener<PlaceSearchCubit, PlaceSearchState>(
@@ -370,6 +392,10 @@ class _MapScreenState extends State<MapScreen> {
               onMapCreated: _onMapCreated,
               onCameraIdle: (position) => _cameraPosition = position,
               onMarkerTapped: _search.selectPlace,
+              onUserGesture: (gesture) => switch (gesture) {
+                MapGesture.pan => _mapCubit.onMapPanned(),
+                MapGesture.rotate => _mapCubit.onMapRotated(),
+              },
               onError: (message) => setState(() => _mapError = message),
             ),
           ),
@@ -435,6 +461,7 @@ class _MapScreenState extends State<MapScreen> {
             bottom: floatingBottom,
             child: MyLocationButton(
               hasPermission: mapState.hasLocationPermission,
+              followMode: mapState.followMode,
               onPressed: _mapCubit.onMyLocationButtonTapped,
             ),
           ),

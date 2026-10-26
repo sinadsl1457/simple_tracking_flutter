@@ -230,6 +230,36 @@ enum class RouteLineKind(val raw: Int) {
   }
 }
 
+/** 카메라가 내 위치를 따라가는 방식. */
+enum class MapFollowMode(val raw: Int) {
+  /** 따라가지 않는다. */
+  NONE(0),
+  /** 카메라 중심이 내 위치 마커를 따라간다. 지도는 북쪽이 위. */
+  FOLLOW(1),
+  /** 따라가면서 지도도 돌린다. 이동 중에는 진행 방향, 정지 중에는 폰이 향한 방향이 위. */
+  FOLLOW_WITH_HEADING(2);
+
+  companion object {
+    fun ofRaw(raw: Int): MapFollowMode? {
+      return values().firstOrNull { it.raw == raw }
+    }
+  }
+}
+
+/** 사용자가 지도를 직접 움직인 제스처. 따라가기 해제 판단에 쓴다. */
+enum class MapGesture(val raw: Int) {
+  /** 한 손가락 드래그. */
+  PAN(0),
+  /** 두 손가락 회전. */
+  ROTATE(1);
+
+  companion object {
+    fun ofRaw(raw: Int): MapGesture? {
+      return values().firstOrNull { it.raw == raw }
+    }
+  }
+}
+
 /** Generated class from Pigeon that represents data sent in messages. */
 data class LatLng (
   val latitude: Double,
@@ -520,31 +550,41 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
         }
       }
       131.toByte() -> {
-        return (readValue(buffer) as? List<Any?>)?.let {
-          LatLng.fromList(it)
+        return (readValue(buffer) as Long?)?.let {
+          MapFollowMode.ofRaw(it.toInt())
         }
       }
       132.toByte() -> {
-        return (readValue(buffer) as? List<Any?>)?.let {
-          CameraPosition.fromList(it)
+        return (readValue(buffer) as Long?)?.let {
+          MapGesture.ofRaw(it.toInt())
         }
       }
       133.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          PlaceMarker.fromList(it)
+          LatLng.fromList(it)
         }
       }
       134.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          RouteLine.fromList(it)
+          CameraPosition.fromList(it)
         }
       }
       135.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          RouteOverlay.fromList(it)
+          PlaceMarker.fromList(it)
         }
       }
       136.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          RouteLine.fromList(it)
+        }
+      }
+      137.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          RouteOverlay.fromList(it)
+        }
+      }
+      138.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           MyLocation.fromList(it)
         }
@@ -562,28 +602,36 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
         stream.write(130)
         writeValue(stream, value.raw.toLong())
       }
-      is LatLng -> {
+      is MapFollowMode -> {
         stream.write(131)
-        writeValue(stream, value.toList())
+        writeValue(stream, value.raw.toLong())
       }
-      is CameraPosition -> {
+      is MapGesture -> {
         stream.write(132)
-        writeValue(stream, value.toList())
+        writeValue(stream, value.raw.toLong())
       }
-      is PlaceMarker -> {
+      is LatLng -> {
         stream.write(133)
         writeValue(stream, value.toList())
       }
-      is RouteLine -> {
+      is CameraPosition -> {
         stream.write(134)
         writeValue(stream, value.toList())
       }
-      is RouteOverlay -> {
+      is PlaceMarker -> {
         stream.write(135)
         writeValue(stream, value.toList())
       }
-      is MyLocation -> {
+      is RouteLine -> {
         stream.write(136)
+        writeValue(stream, value.toList())
+      }
+      is RouteOverlay -> {
+        stream.write(137)
+        writeValue(stream, value.toList())
+      }
+      is MyLocation -> {
+        stream.write(138)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -606,6 +654,8 @@ interface KakaoMapHostApi {
   fun showRoute(overlay: RouteOverlay?)
   /** null이면 내 위치 마커를 지운다. */
   fun updateMyLocation(location: MyLocation?)
+  /** 내 위치 마커가 아직 없으면 마커가 생길 때 따라가기 시작한다. */
+  fun setFollowMode(mode: MapFollowMode)
 
   companion object {
     /** The codec used by KakaoMapHostApi. */
@@ -709,6 +759,24 @@ interface KakaoMapHostApi {
           channel.setMessageHandler(null)
         }
       }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.setFollowMode$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val modeArg = args[0] as MapFollowMode
+            val wrapped: List<Any?> = try {
+              api.setFollowMode(modeArg)
+              listOf(null)
+            } catch (exception: Throwable) {
+              MessagesPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
     }
   }
 }
@@ -791,6 +859,26 @@ class KakaoMapFlutterApi(private val binaryMessenger: BinaryMessenger, private v
       val channelName = "dev.flutter.pigeon.kakao_map_view.KakaoMapFlutterApi.onMarkerTapped$separatedMessageChannelSuffix"
       val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
       channel.send(listOf(idArg)) {
+        if (it is List<*>) {
+          if (it.size > 1) {
+            continuation.resumeWithException(FlutterError(it[0] as String, it[1] as String, it[2] as String?))
+          } else {
+            continuation.resume(Unit)
+          }
+        } else {
+          continuation.resumeWithException(MessagesPigeonUtils.createConnectionError(channelName))
+        } 
+      }
+    }
+  }
+  /** 사용자가 드래그·회전으로 카메라를 움직이기 시작했다(줌 제스처는 보내지 않는다). */
+  suspend fun onUserGesture(gestureArg: MapGesture)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    return suspendCancellableCoroutine { continuation ->
+      val channelName = "dev.flutter.pigeon.kakao_map_view.KakaoMapFlutterApi.onUserGesture$separatedMessageChannelSuffix"
+      val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+      channel.send(listOf(gestureArg)) {
         if (it is List<*>) {
           if (it.size > 1) {
             continuation.resumeWithException(FlutterError(it[0] as String, it[1] as String, it[2] as String?))

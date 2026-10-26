@@ -10,6 +10,8 @@ export 'src/messages.g.dart'
         CameraPosition,
         LatLng,
         MapFitLayout,
+        MapFollowMode,
+        MapGesture,
         MyLocation,
         PlaceMarker,
         RouteLine,

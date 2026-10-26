@@ -103,8 +103,8 @@ Native KakaoMapViewPlugin (등록) → KakaoMapViewFactory.create
         → KakaoMapPlatformView (지도 뷰 1개 = 이 객체 1개)
             ├ KakaoMapController : 카카오 SDK 조작 (네이티브 앱 코드 이식)
             └ Pigeon 채널 (이름 뒤에 channelId)
-                ├ HostApi    Dart → Native : moveCamera, fitCamera, showPlaceMarkers, showRoute, updateMyLocation
-                └ FlutterApi Native → Dart : onMapReady, onMapError, onCameraIdle, onMarkerTapped
+                ├ HostApi    Dart → Native : moveCamera, fitCamera, showPlaceMarkers, showRoute, updateMyLocation, setFollowMode
+                └ FlutterApi Native → Dart : onMapReady, onMapError, onCameraIdle, onMarkerTapped, onUserGesture
 ```
 
 | | iOS (Swift) | Android (Kotlin) |
@@ -122,7 +122,16 @@ Native KakaoMapViewPlugin (등록) → KakaoMapViewFactory.create
 - 회전은 직전 각도에서 가까운 쪽으로 이어 붙인다(`continuousRoll` / `continuousRotation`). 359° → 1°는 +2°만 돈다.
 - 100m 넘게 뛰면(GPS 재수신, 가상 위치 변경) 애니메이션 없이 바로 옮긴다. 처음 그릴 때도 바로.
 
-**방향 콘(나침반)** — 정지 중(bearing 없음)이면 점 아래에 폰이 향한 방향을 부채꼴로 그린다. 움직이는 중엔 화살표만.
+**나침반 표시** — 정지 중(bearing 없음)에 폰이 향한 방향을 보여 준다. 움직이는 중엔 진행 방향 화살표만.
+
+| 상태 | 내 위치 마커 | 방향 콘(부채꼴) |
+|---|---|---|
+| 따라가기 꺼짐 + 정지 | 점 + 작은 화살촉(나침반 방향으로 회전) | 없음 |
+| 따라가기·지도 회전 + 정지 | 점 | 점 아래에 표시 |
+| 이동 중(모든 모드) | 진행 방향 화살표 | 없음 |
+
+- 정지 중엔 모드와 상관없이 점 라벨을 나침반 방향으로 돌린다. 꺼짐 모드에선 화살촉이 그 방향을 가리키고, 회전 모드에선 트래킹이 그 회전을 따라 지도를 돌린다.
+- iOS 시뮬레이터에는 나침반이 없어서 시뮬레이터 빌드(`#if targetEnvironment(simulator)`)에서만 12초에 한 바퀴 도는 가짜 방향을 보낸다.
 - 나침반 값은 초당 여러 번 바뀌어서 Dart로 보내지 않는다. 플러그인 안의 `CompassHeading`이 읽어 바로 콘을 돌린다. Dart·Pigeon 변경 없음.
 - 센서는 내 위치 마커가 있고 앱이 화면에 있을 때만 켠다(iOS `setActive`, Android Activity resume/pause).
 
@@ -132,7 +141,19 @@ Native KakaoMapViewPlugin (등록) → KakaoMapViewFactory.create
 | 진북 | OS가 `trueHeading`으로 줌 | 자북 + `GeomagneticField` 편각(서울 약 -9°) |
 | 떨림 | OS가 보정 | sin·cos 저역 통과 필터 + 1° 미만 변화 무시 |
 | 가로 화면 | `headingOrientation`을 기기 방향에 맞춤 | `remapCoordinateSystem` |
-| 시뮬레이터 | 나침반 없음 → 콘 안 나옴 (실기기 확인) | 에뮬레이터 가상 센서로 확인 가능: `adb emu sensor set magnetic-field x:y:z` |
+| 시뮬레이터 | 나침반 없음 → 가짜 방향(천천히 회전)으로 화면만 확인 | 에뮬레이터 가상 센서로 확인 가능: `adb emu sensor set magnetic-field x:y:z` |
+
+**따라가기 모드** — 내 위치 버튼을 누를 때마다 `none → follow → followWithHeading → none`.
+- 상태(`FollowMode`)는 `MapCubit`이 갖고, `MapScreen`이 `setFollowMode`로 지도에 알린다. 카메라 추적은 카카오 SDK의
+  **TrackingManager**(iOS `getTrackingManager().startTrackingPoi`, Android `trackingManager.startTracking`)가 한다.
+  트래킹은 마커의 이동 애니메이션을 매 프레임 따라가서, Dart에서 카메라를 따로 옮기는 것보다 마커와 어긋나지 않는다.
+- `followWithHeading`은 트래킹의 회전 추적(`isTrackingRoll` / `setTrackingRotation`)을 켠다. 지도가 내 위치 마커의 회전을
+  따라 돈다. 이동 중엔 화살표가 진행 방향으로 돌고, 정지 중엔 **점 마커를 나침반 방향으로 돌려**(동그라미라 티가 안 남)
+  폰이 향한 방향이 위가 되게 한다. 이 모드를 끄면 지도를 북쪽이 위로 되돌린다.
+- 해제: 사용자가 드래그하면 네이티브가 `onUserGesture(pan)`을 보내 `none`으로. 두 손가락 회전(`rotate`)은 회전 모드만
+  풀고 따라가기는 유지. 줌 제스처는 보내지 않는다(따라가며 확대·축소 가능). 코드로 옮긴 카메라는 SDK가 "사용자 동작 아님"으로 알려 무시된다.
+- 검색 결과·장소 선택·경로 맞추기·길찾기 닫기(카메라 복원)는 카메라를 옮기기 전에 `stopFollowing()`을 부른다.
+  켜 두면 트래킹이 카메라를 곧바로 내 위치로 끌고 간다.
 - **인터페이스를 바꿀 때**: `pigeons/messages.dart` 수정 → `dart run pigeon --input pigeons/messages.dart`
   → 컴파일 에러가 나는 Swift/Kotlin 구현을 채운다. `*.g.*` 파일은 직접 고치지 않는다.
 - **Xcode에서 보기**: `ios/Runner.xcworkspace` → Package Dependencies → `kakao_map_view (local)`.

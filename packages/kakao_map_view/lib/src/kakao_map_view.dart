@@ -18,6 +18,7 @@ class KakaoMapView extends StatefulWidget {
     this.onMapCreated,
     this.onCameraIdle,
     this.onMarkerTapped,
+    this.onUserGesture,
     this.onError,
     super.key,
   });
@@ -27,6 +28,9 @@ class KakaoMapView extends StatefulWidget {
   final ValueChanged<KakaoMapController>? onMapCreated;
   final ValueChanged<CameraPosition>? onCameraIdle;
   final ValueChanged<String>? onMarkerTapped;
+
+  /// 사용자가 지도를 드래그·회전하기 시작했다. 따라가기 해제에 쓴다.
+  final ValueChanged<MapGesture>? onUserGesture;
   final ValueChanged<String>? onError;
 
   /// 네이티브 `KakaoMapViewPlugin.viewType`과 같아야 한다.
@@ -123,4 +127,8 @@ class _EventHandler implements KakaoMapFlutterApi {
 
   @override
   void onMarkerTapped(String id) => _widget.onMarkerTapped?.call(id);
+
+  @override
+  void onUserGesture(MapGesture gesture) =>
+      _widget.onUserGesture?.call(gesture);
 }

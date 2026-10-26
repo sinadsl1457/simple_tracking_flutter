@@ -205,6 +205,24 @@ enum RouteLineKind: Int, CaseIterable {
   case subway = 3
 }
 
+/// 카메라가 내 위치를 따라가는 방식.
+enum MapFollowMode: Int, CaseIterable {
+  /// 따라가지 않는다.
+  case none = 0
+  /// 카메라 중심이 내 위치 마커를 따라간다. 지도는 북쪽이 위.
+  case follow = 1
+  /// 따라가면서 지도도 돌린다. 이동 중에는 진행 방향, 정지 중에는 폰이 향한 방향이 위.
+  case followWithHeading = 2
+}
+
+/// 사용자가 지도를 직접 움직인 제스처. 따라가기 해제 판단에 쓴다.
+enum MapGesture: Int, CaseIterable {
+  /// 한 손가락 드래그.
+  case pan = 0
+  /// 두 손가락 회전.
+  case rotate = 1
+}
+
 /// Generated class from Pigeon that represents data sent in messages.
 struct LatLng: Hashable, CustomStringConvertible {
   var latitude: Double
@@ -487,16 +505,28 @@ private class MessagesPigeonCodecReader: FlutterStandardReader {
       }
       return nil
     case 131:
-      return LatLng.fromList(self.readValue() as! [Any?])
+      let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
+      if let enumResultAsInt = enumResultAsInt {
+        return MapFollowMode(rawValue: enumResultAsInt)
+      }
+      return nil
     case 132:
-      return CameraPosition.fromList(self.readValue() as! [Any?])
+      let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
+      if let enumResultAsInt = enumResultAsInt {
+        return MapGesture(rawValue: enumResultAsInt)
+      }
+      return nil
     case 133:
-      return PlaceMarker.fromList(self.readValue() as! [Any?])
+      return LatLng.fromList(self.readValue() as! [Any?])
     case 134:
-      return RouteLine.fromList(self.readValue() as! [Any?])
+      return CameraPosition.fromList(self.readValue() as! [Any?])
     case 135:
-      return RouteOverlay.fromList(self.readValue() as! [Any?])
+      return PlaceMarker.fromList(self.readValue() as! [Any?])
     case 136:
+      return RouteLine.fromList(self.readValue() as! [Any?])
+    case 137:
+      return RouteOverlay.fromList(self.readValue() as! [Any?])
+    case 138:
       return MyLocation.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -512,23 +542,29 @@ private class MessagesPigeonCodecWriter: FlutterStandardWriter {
     } else if let value = value as? RouteLineKind {
       super.writeByte(130)
       super.writeValue(value.rawValue)
-    } else if let value = value as? LatLng {
+    } else if let value = value as? MapFollowMode {
       super.writeByte(131)
-      super.writeValue(value.toList())
-    } else if let value = value as? CameraPosition {
+      super.writeValue(value.rawValue)
+    } else if let value = value as? MapGesture {
       super.writeByte(132)
-      super.writeValue(value.toList())
-    } else if let value = value as? PlaceMarker {
+      super.writeValue(value.rawValue)
+    } else if let value = value as? LatLng {
       super.writeByte(133)
       super.writeValue(value.toList())
-    } else if let value = value as? RouteLine {
+    } else if let value = value as? CameraPosition {
       super.writeByte(134)
       super.writeValue(value.toList())
-    } else if let value = value as? RouteOverlay {
+    } else if let value = value as? PlaceMarker {
       super.writeByte(135)
       super.writeValue(value.toList())
-    } else if let value = value as? MyLocation {
+    } else if let value = value as? RouteLine {
       super.writeByte(136)
+      super.writeValue(value.toList())
+    } else if let value = value as? RouteOverlay {
+      super.writeByte(137)
+      super.writeValue(value.toList())
+    } else if let value = value as? MyLocation {
+      super.writeByte(138)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -563,6 +599,8 @@ protocol KakaoMapHostApi {
   func showRoute(overlay: RouteOverlay?) throws
   /// null이면 내 위치 마커를 지운다.
   func updateMyLocation(location: MyLocation?) throws
+  /// 내 위치 마커가 아직 없으면 마커가 생길 때 따라가기 시작한다.
+  func setFollowMode(mode: MapFollowMode) throws
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -652,6 +690,22 @@ class KakaoMapHostApiSetup {
     } else {
       updateMyLocationChannel.setMessageHandler(nil)
     }
+    /// 내 위치 마커가 아직 없으면 마커가 생길 때 따라가기 시작한다.
+    let setFollowModeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.setFollowMode\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setFollowModeChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let modeArg = args[0] as! MapFollowMode
+        do {
+          try api.setFollowMode(mode: modeArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setFollowModeChannel.setMessageHandler(nil)
+    }
   }
 }
 
@@ -666,6 +720,8 @@ protocol KakaoMapFlutterApiProtocol {
   /// 카메라가 멈췄을 때 화면 중심 좌표와 줌.
   @MainActor func onCameraIdle(position positionArg: CameraPosition) async throws
   @MainActor func onMarkerTapped(id idArg: String) async throws
+  /// 사용자가 드래그·회전으로 카메라를 움직이기 시작했다(줌 제스처는 보내지 않는다).
+  @MainActor func onUserGesture(gesture gestureArg: MapGesture) async throws
 }
 class KakaoMapFlutterApi: KakaoMapFlutterApiProtocol {
   private let binaryMessenger: FlutterBinaryMessenger
@@ -745,6 +801,27 @@ class KakaoMapFlutterApi: KakaoMapFlutterApiProtocol {
       let channelName: String = "dev.flutter.pigeon.kakao_map_view.KakaoMapFlutterApi.onMarkerTapped\(messageChannelSuffix)"
       let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
       channel.sendMessage([idArg] as [Any?]) { response in
+        guard let listResponse = response as? [Any?] else {
+          continuation.resume(throwing: createConnectionError(withChannelName: channelName))
+          return
+        }
+        if listResponse.count > 1 {
+          let code: String = listResponse[0] as! String
+          let message: String? = nilOrValue(listResponse[1])
+          let details: String? = nilOrValue(listResponse[2])
+          continuation.resume(throwing: PigeonError(code: code, message: message, details: details))
+        } else {
+          continuation.resume()
+        }
+      }
+    }
+  }
+  /// 사용자가 드래그·회전으로 카메라를 움직이기 시작했다(줌 제스처는 보내지 않는다).
+  @MainActor func onUserGesture(gesture gestureArg: MapGesture) async throws {
+    return try await withCheckedThrowingContinuation { continuation in
+      let channelName: String = "dev.flutter.pigeon.kakao_map_view.KakaoMapFlutterApi.onUserGesture\(messageChannelSuffix)"
+      let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+      channel.sendMessage([gestureArg] as [Any?]) { response in
         guard let listResponse = response as? [Any?] else {
           continuation.resume(throwing: createConnectionError(withChannelName: channelName))
           return

@@ -103,6 +103,8 @@ internal class KakaoMapPlatformView(
 
     override fun placeMarkerTapped(id: String) = send { flutterApi.onMarkerTapped(id) }
 
+    override fun userGesture(gesture: MapGesture) = send { flutterApi.onUserGesture(gesture) }
+
     /** Dart 쪽 핸들러가 이미 해제됐으면(화면이 닫힘) 실패하는데, 그때는 버린다. */
     private fun send(call: suspend () -> Unit) {
         scope.launch { runCatching { call() } }

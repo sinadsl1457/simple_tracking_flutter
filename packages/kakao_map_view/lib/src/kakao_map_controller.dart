@@ -1,4 +1,4 @@
-// [플러그인 Dart] Dart → Native 지도 명령(카메라, 마커, 경로, 내 위치). Pigeon HostApi를 감싼다.
+// [플러그인 Dart] Dart → Native 지도 명령(카메라, 마커, 경로, 내 위치, 따라가기). Pigeon HostApi를 감싼다.
 
 import 'package:kakao_map_view/src/messages.g.dart';
 
@@ -31,4 +31,8 @@ class KakaoMapController {
   /// null이면 내 위치 마커를 지운다.
   Future<void> updateMyLocation(MyLocation? location) =>
       _api.updateMyLocation(location);
+
+  /// 카메라가 내 위치를 따라가게 한다. 지도에서 드래그하면 [KakaoMapView.onUserGesture]가
+  /// 불리고, 해제는 앱이 정해서 다시 이 메서드로 알려 준다.
+  Future<void> setFollowMode(MapFollowMode mode) => _api.setFollowMode(mode);
 }

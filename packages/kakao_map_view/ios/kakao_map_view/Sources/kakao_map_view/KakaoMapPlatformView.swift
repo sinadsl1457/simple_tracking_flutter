@@ -76,6 +76,10 @@ extension KakaoMapPlatformView: KakaoMapEvents {
     func placeMarkerTapped(id: String) {
         Task { try? await flutterApi.onMarkerTapped(id: id) }
     }
+
+    func userDidGesture(_ gesture: MapGesture) {
+        Task { try? await flutterApi.onUserGesture(gesture: gesture) }
+    }
 }
 
 final class KakaoMapViewFactory: NSObject, FlutterPlatformViewFactory {

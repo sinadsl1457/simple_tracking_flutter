@@ -51,6 +51,42 @@ internal object MarkerBitmaps {
         return bitmap
     }
 
+    /**
+     * 정지 중이고 따라가기가 꺼져 있을 때. 점(myLocationDot과 같은 크기) 위에 폰이 향한 방향을 가리키는 작은 화살촉.
+     * 36dp(화살촉이 후광 밖으로 나와서 점보다 크다). 위(북쪽)를 가리키게 그리고, 회전은 라벨이 맡는다.
+     */
+    fun myLocationHeadingDot(context: Context): Bitmap {
+        val density = context.resources.displayMetrics.density
+        val size = 36 * density
+        val bitmap = Bitmap.createBitmap(ceil(size).toInt(), ceil(size).toInt(), Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val center = size / 2
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.color = MapColors.HALO
+        canvas.drawCircle(center, center, 14 * density, paint)
+
+        val pointer = Path().apply {
+            moveTo(18 * density, 1.5f * density)
+            lineTo(23.5f * density, 9.5f * density)
+            lineTo(12.5f * density, 9.5f * density)
+            close()
+        }
+        canvas.drawPath(pointer, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = MapColors.PRIMARY })
+        val outline = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 1.5f * density
+            strokeJoin = Paint.Join.ROUND
+            color = Color.WHITE
+        }
+        canvas.drawPath(pointer, outline)
+
+        paint.color = Color.WHITE
+        canvas.drawCircle(center, center, 8 * density, paint)
+        paint.color = MapColors.PRIMARY
+        canvas.drawCircle(center, center, 6 * density, paint)
+        return bitmap
+    }
+
     /** 이동 중일 때. 32dp, 위(북쪽)를 가리키는 화살표. 회전은 라벨이 맡는다. */
     fun myLocationArrow(context: Context): Bitmap {
         val density = context.resources.displayMetrics.density
@@ -79,7 +115,7 @@ internal object MarkerBitmaps {
     }
 
     /**
-     * 정지 중 폰이 향한 방향. 80dp, 가운데에서 위(북쪽)로 퍼지는 부채꼴(70°). 회전은 라벨이 맡는다.
+     * 따라가기 중 정지해 있을 때 폰이 향한 방향. 80dp, 가운데에서 위(북쪽)로 퍼지는 부채꼴(70°). 회전은 라벨이 맡는다.
      * 가운데는 진하고 바깥으로 갈수록 투명해진다. 내 위치 점 아래에 깔린다.
      */
     fun headingCone(context: Context): Bitmap {

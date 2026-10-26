@@ -1,7 +1,8 @@
 // [플러그인 Swift] 카카오 지도 SDK를 실제로 조작하는 곳. 네이티브 앱의 같은 파일을 거의 그대로 옮겼다.
-// Dart 명령(HostApi 구현): moveCamera · fitCamera · showPlaceMarkers · showRoute · updateMyLocation
+// Dart 명령(HostApi 구현): moveCamera · fitCamera · showPlaceMarkers · showRoute · updateMyLocation · setFollowMode
 // Dart로 보내는 이벤트: KakaoMapEvents 프로토콜 → KakaoMapPlatformView가 Pigeon FlutterApi로 전달
-// 방향 콘(정지 중 폰이 향한 방향): CompassHeading 값을 받아 내 위치 점 아래 POI를 돌린다.
+// 나침반(정지 중 폰이 향한 방향): CompassHeading 값으로 따라가기 꺼짐이면 점의 화살촉을, 따라가기 중이면 점 아래 콘을 돌린다.
+// 따라가기: SDK TrackingManager가 내 위치 POI를 카메라로 따라간다. 드래그하면 Dart에 알려 해제하게 한다.
 
 import CoreLocation
 @preconcurrency import KakaoMapsSDK
@@ -14,6 +15,7 @@ protocol KakaoMapEvents: AnyObject {
     func mapDidFail(_ message: String)
     func cameraDidStop(at position: CameraPosition)
     func placeMarkerTapped(id: String)
+    func userDidGesture(_ gesture: MapGesture)
 }
 
 /// Kakao Maps SDK의 명령형 API를 모으는 곳. 엔진 수명주기, 카메라, 마커, 경로를 맡는다.
@@ -34,6 +36,7 @@ final class KakaoMapController: NSObject {
         static let myLocationPoi = "myLocation.poi"
         static let dotStyle = "myLocation.dot"
         static let arrowStyle = "myLocation.arrow"
+        static let headingDotStyle = "myLocation.headingDot"
         static let conePoi = "myLocation.cone"
         static let coneStyle = "myLocation.cone.style"
         static let placeLayer = "places"
@@ -54,6 +57,8 @@ final class KakaoMapController: NSObject {
     private static let markerAnimationMillis: UInt = 1_000
     /// 이보다 멀리 뛰면(GPS 재수신, 가상 위치 변경) 지도를 가로질러 미끄러지지 않게 바로 옮긴다.
     private static let markerJumpMeters: CLLocationDistance = 100
+    /// 정지 중 이보다 적게 움직이면 GPS 잡음으로 보고 마커를 옮기지 않는다.
+    private static let stationaryJitterMeters: CLLocationDistance = 1
     private static let cameraAnimationMillis: UInt = 300
     /// 나침반 값 사이를 잇는 회전 시간. 갱신 간격보다 조금 길게 잡아 끊김 없이 돈다.
     private static let coneRotateMillis: UInt = 150
@@ -75,12 +80,14 @@ final class KakaoMapController: NSObject {
     private var shownSelectedPlaceID: String?
     private var placeTapHandlers: [any DisposableEventHandler] = []
     private var cameraStoppedHandler: (any DisposableEventHandler)?
+    private var cameraWillMoveHandler: (any DisposableEventHandler)?
+    private var followMode = MapFollowMode.none
     private var routeDrawCount = 0
 
     /// 마지막으로 적용한 회전값. 359° → 1°처럼 경계를 넘을 때 반대로 한 바퀴 돌지 않게 이어 붙인다.
     private var lastRoll: Double?
 
-    // 방향 콘: 정지 중(bearing 없음)일 때 점 아래에 폰이 향한 방향을 그린다. 움직이는 중에는 화살표가 방향을 보여 준다.
+    // 정지 중(bearing 없음) 폰이 향한 방향: 따라가기 꺼짐이면 점의 화살촉, 따라가기 중이면 점 아래 콘. 이동 중에는 화살표가 진행 방향을 보여 준다.
     private lazy var compass = CompassHeading { [weak self] in self?.onHeading($0) }
     private var conePoi: Poi?
     private var lastConeRoll: Double?
@@ -130,10 +137,13 @@ final class KakaoMapController: NSObject {
 
     func tearDown() {
         compass.stop()
+        map?.getTrackingManager().stopTracking()
         conePoi = nil
         disposePlaceTapHandlers()
         cameraStoppedHandler?.dispose()
         cameraStoppedHandler = nil
+        cameraWillMoveHandler?.dispose()
+        cameraWillMoveHandler = nil
         myLocationPoi = nil
         controller?.pauseEngine()
         controller?.resetEngine()
@@ -154,6 +164,9 @@ final class KakaoMapController: NSObject {
         _ = labelManager.addLabelLayer(option: layerOptions)
         labelManager.addPoiStyle(PoiStyle(styleID: ID.dotStyle, styles: [
             PerLevelPoiStyle(iconStyle: PoiIconStyle(symbol: MyLocationMarkerImages.dot()), level: 0),
+        ]))
+        labelManager.addPoiStyle(PoiStyle(styleID: ID.headingDotStyle, styles: [
+            PerLevelPoiStyle(iconStyle: PoiIconStyle(symbol: MyLocationMarkerImages.headingDot()), level: 0),
         ]))
         labelManager.addPoiStyle(PoiStyle(styleID: ID.arrowStyle, styles: [
             PerLevelPoiStyle(iconStyle: PoiIconStyle(symbol: MyLocationMarkerImages.arrow()), level: 0),
@@ -209,6 +222,16 @@ final class KakaoMapController: NSObject {
     private func observeCamera(on map: KakaoMap) {
         cameraStoppedHandler = map.addCameraStoppedEventHandler(target: self) { controller in
             { _ in controller.reportCameraCenter() }
+        }
+        // 코드로 옮긴 카메라(애니메이션·트래킹)는 notUserAction으로 와서 무시된다.
+        cameraWillMoveHandler = map.addCameraWillMovedEventHandler(target: self) { controller in
+            { param in
+                switch param.by {
+                case .pan, .longTapAndDrag: controller.events?.userDidGesture(.pan)
+                case .rotate: controller.events?.userDidGesture(.rotate)
+                default: break
+                }
+            }
         }
         reportCameraCenter()
     }
@@ -271,20 +294,67 @@ final class KakaoMapController: NSObject {
             .distance(from: CLLocation(latitude: b.latitude, longitude: b.longitude))
     }
 
+    /// 정지 중(점 → 점) GPS 잡음으로 조금 흔들린 위치인가.
+    /// 매초 1초짜리 이동 애니메이션을 새로 걸면 지도가 쉬지 않고 다시 그려져(따라가기 중이면 카메라까지) 배터리를 쓴다.
+    private func isStationaryJitter(_ location: MyLocation) -> Bool {
+        guard let last = myLocationPoint, myLocationPoi != nil, isStationary, location.bearing == nil else { return false }
+        return Self.distance(last, location.point) < Self.stationaryJitterMeters
+    }
+
+    // MARK: - 따라가기
+
+    /// 모드와 POI 상태에 맞춰 SDK 트래킹을 켜고 끈다. 트래킹은 POI의 이동 애니메이션을 매 프레임 따라가서
+    /// 카메라를 따로 움직이는 것보다 마커와 어긋나지 않는다. 회전 모드에서는 POI의 회전값도 따라간다.
+    private func syncTracking() {
+        guard let tracking = map?.getTrackingManager() else { return }
+        // 한 번에 하나만 추적하고, 설정을 바꾸려면 먼저 멈춰야 한다.
+        tracking.stopTracking()
+        guard followMode != .none, let myLocationPoi else { return }
+        tracking.isTrackingRoll = followMode == .followWithHeading
+        tracking.startTrackingPoi(myLocationPoi)
+    }
+
+    /// 정지 중이면 점 POI를 나침반 방향으로 돌린다. 이동 중에는 화살표가 진행 방향으로 돈다.
+    /// - 따라가기 꺼짐: 점의 화살촉이 폰이 향한 방향을 가리킨다.
+    /// - 회전 모드: 점은 동그라미라 돌려도 티가 나지 않고, 트래킹이 그 회전을 따라 지도를 돌려서 폰이 향한 방향이 위가 된다.
+    private func rotateDotToHeading(duration: UInt = 0) {
+        guard isStationary, let heading, let myLocationPoi else { return }
+        let roll = continuousRoll(toward: Self.roll(fromBearing: heading))
+        myLocationPoi.rotateAt(roll, duration: duration)
+        lastRoll = roll
+    }
+
+    /// 이동 중이면 화살표. 정지 중이면 따라가기 꺼짐 + 방향을 앎 → 화살촉 달린 점, 그 밖에는 점(따라가기 중엔 콘이 방향을 보여 준다).
+    private func myLocationStyleID(bearing: Double?) -> String {
+        if bearing != nil { return ID.arrowStyle }
+        return heading != nil && followMode == .none ? ID.headingDotStyle : ID.dotStyle
+    }
+
+    /// 정지 중 마커 모양을 지금 모드·나침반 상태에 맞춘다. 위치가 그대로여도 모드나 나침반이 바뀌면 불린다.
+    private func refreshStationaryMarker() {
+        guard isStationary, let myLocationPoi else { return }
+        let style = myLocationStyleID(bearing: nil)
+        guard style != myLocationStyle else { return }
+        myLocationPoi.changeStyle(styleID: style)
+        myLocationStyle = style
+    }
+
     // MARK: - 방향 콘
 
     /// 나침반 값이 바뀔 때(초당 여러 번). 위치 이동과 달리 짧게 돌려서 손을 따라오게 한다.
     private func onHeading(_ degrees: Double) {
         heading = degrees
+        refreshStationaryMarker()
+        rotateDotToHeading(duration: Self.coneRotateMillis)
         guard let conePoi else { return syncCone(duration: 0) }
         let roll = Self.continuousRoll(toward: Self.roll(fromBearing: degrees), from: lastConeRoll)
         conePoi.rotateAt(roll, duration: Self.coneRotateMillis)
         lastConeRoll = roll
     }
 
-    /// 정지 중이고 방향을 알면 콘을 내 위치로 옮기고(없으면 만들고), 아니면 지운다.
+    /// 따라가기 중 정지해 있고 방향을 알면 콘을 내 위치로 옮기고(없으면 만들고), 아니면 지운다.
     private func syncCone(duration: UInt) {
-        guard let point = myLocationPoint, let heading, isStationary,
+        guard followMode != .none, let point = myLocationPoint, let heading, isStationary,
               let layer = map?.getLabelManager().getLabelLayer(layerID: ID.myLocationLayer) else {
             return removeCone()
         }
@@ -440,6 +510,7 @@ extension KakaoMapController: @preconcurrency KakaoMapHostApi {
         guard let layer = map?.getLabelManager().getLabelLayer(layerID: ID.myLocationLayer) else { return }
 
         guard let location else {
+            map?.getTrackingManager().stopTracking()
             layer.removePoi(poiID: ID.myLocationPoi)
             myLocationPoi = nil
             myLocationStyle = nil
@@ -449,9 +520,11 @@ extension KakaoMapController: @preconcurrency KakaoMapHostApi {
             removeCone()
             return
         }
+        if isStationaryJitter(location) { return }
 
         let point = Self.mapPoint(location.point)
-        let style = location.bearing == nil ? ID.dotStyle : ID.arrowStyle
+        let style = myLocationStyleID(bearing: location.bearing)
+        let isNewPoi = myLocationPoi == nil
 
         if let poi = myLocationPoi {
             if style != myLocationStyle {
@@ -481,15 +554,37 @@ extension KakaoMapController: @preconcurrency KakaoMapHostApi {
             poi.show()
             myLocationPoi = poi
             myLocationStyle = style
+            // 위치를 받기 전에 따라가기를 켰으면 POI가 생긴 지금 시작한다.
+            syncTracking()
         }
         // 콘도 점과 같은 시간에 걸쳐 따라간다(멀리 뛰었거나 처음이면 바로).
         let coneDuration = myLocationPoint.map {
             Self.distance($0, location.point) > Self.markerJumpMeters ? 0 : Self.markerAnimationMillis
         } ?? 0
         myLocationPoint = location.point
+        let wasStationary = isStationary
         isStationary = location.bearing == nil
+        // 방금 멈췄거나 처음 그렸으면 점(화살촉)을 지금 방향으로 맞춘다. 나침반은 방향이 바뀔 때만 알려 준다.
+        if isStationary, isNewPoi || !wasStationary { rotateDotToHeading() }
         if isActive { compass.start() }
         syncCone(duration: coneDuration)
+    }
+
+    /// Dart: controller.setFollowMode → 카메라가 내 위치를 따라간다. 회전 모드를 끄면 지도를 다시 북쪽이 위로 돌린다.
+    func setFollowMode(mode: MapFollowMode) {
+        guard mode != followMode else { return }
+        let wasRotating = followMode == .followWithHeading
+        followMode = mode
+        syncTracking()
+        refreshStationaryMarker()
+        rotateDotToHeading()
+        syncCone(duration: 0)
+        if wasRotating, mode != .followWithHeading, let map {
+            map.animateCamera(
+                cameraUpdate: CameraUpdate.make(rotation: 0, tilt: map.tiltAngle, mapView: map),
+                options: CameraAnimationOptions(autoElevation: false, consecutive: false, durationInMillis: Self.cameraAnimationMillis)
+            )
+        }
     }
 }
 

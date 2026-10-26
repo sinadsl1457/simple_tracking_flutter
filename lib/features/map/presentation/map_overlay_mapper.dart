@@ -4,6 +4,7 @@
 import 'package:kakao_map_view/kakao_map_view.dart';
 import 'package:simple_tracking/core/geo/geo_point.dart';
 import 'package:simple_tracking/features/location/domain/user_location.dart';
+import 'package:simple_tracking/features/map/presentation/cubit/map_state.dart';
 import 'package:simple_tracking/features/place/domain/place.dart';
 import 'package:simple_tracking/features/route/domain/route_path.dart';
 import 'package:simple_tracking/features/route/domain/transit_route.dart';
@@ -22,6 +23,14 @@ extension LatLngToGeoPoint on LatLng {
 extension UserLocationToMyLocation on UserLocation {
   MyLocation toMyLocation() =>
       MyLocation(point: point.toLatLng(), bearing: bearing);
+}
+
+extension FollowModeToMapFollowMode on FollowMode {
+  MapFollowMode toMapFollowMode() => switch (this) {
+    FollowMode.none => MapFollowMode.none,
+    FollowMode.follow => MapFollowMode.follow,
+    FollowMode.followWithHeading => MapFollowMode.followWithHeading,
+  };
 }
 
 /// 목록 순번(1부터)을 붙여 마커로 만든다.

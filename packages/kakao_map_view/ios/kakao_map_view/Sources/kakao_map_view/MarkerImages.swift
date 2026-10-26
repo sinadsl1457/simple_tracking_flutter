@@ -41,6 +41,34 @@ enum MyLocationMarkerImages {
         }
     }
 
+    /// 정지 중이고 따라가기가 꺼져 있을 때. 점(dot과 같은 크기) 위에 폰이 향한 방향을 가리키는 작은 화살촉.
+    /// 36pt(화살촉이 후광 밖으로 나와서 dot보다 크다). 위(북쪽)를 가리키게 그리고, 회전은 POI가 맡는다.
+    static func headingDot() -> UIImage {
+        let size = CGSize(width: 36, height: 36)
+        return UIGraphicsImageRenderer(size: size).image { _ in
+            let center = CGPoint(x: 18, y: 18)
+            tint.withAlphaComponent(0.2).setFill()
+            circle(center: center, radius: 14).fill()
+
+            let pointer = UIBezierPath()
+            pointer.move(to: CGPoint(x: 18, y: 1.5))
+            pointer.addLine(to: CGPoint(x: 23.5, y: 9.5))
+            pointer.addLine(to: CGPoint(x: 12.5, y: 9.5))
+            pointer.close()
+            pointer.lineJoinStyle = .round
+            pointer.lineWidth = 1.5
+            tint.setFill()
+            pointer.fill()
+            UIColor.white.setStroke()
+            pointer.stroke()
+
+            UIColor.white.setFill()
+            circle(center: center, radius: 8).fill()
+            tint.setFill()
+            circle(center: center, radius: 6).fill()
+        }
+    }
+
     /// 이동 중일 때. 32pt, 위(북쪽)를 가리키는 화살표. 회전은 POI가 맡는다.
     static func arrow() -> UIImage {
         let size = CGSize(width: 32, height: 32)
@@ -63,7 +91,7 @@ enum MyLocationMarkerImages {
         }
     }
 
-    /// 정지 중 폰이 향한 방향. 80pt, 가운데에서 위(북쪽)로 퍼지는 부채꼴(70°). 회전은 POI가 맡는다.
+    /// 따라가기 중 정지해 있을 때 폰이 향한 방향. 80pt, 가운데에서 위(북쪽)로 퍼지는 부채꼴(70°). 회전은 POI가 맡는다.
     /// 가운데는 진하고 바깥으로 갈수록 투명해진다. 내 위치 점 아래에 깔린다.
     static func headingCone() -> UIImage {
         let size = CGSize(width: 80, height: 80)

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MapState {
 
- bool get hasLocationPermission; UserLocation? get myLocation;
+ bool get hasLocationPermission; UserLocation? get myLocation; FollowMode get followMode;
 /// Create a copy of MapState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,20 +27,20 @@ $MapStateCopyWith<MapState> get copyWith => _$MapStateCopyWithImpl<MapState>(thi
 @override
 bool operator ==(Object other) {
   final _this = this as MapState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapState&&(identical(other.hasLocationPermission, _this.hasLocationPermission) || other.hasLocationPermission == _this.hasLocationPermission)&&(identical(other.myLocation, _this.myLocation) || other.myLocation == _this.myLocation));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapState&&(identical(other.hasLocationPermission, _this.hasLocationPermission) || other.hasLocationPermission == _this.hasLocationPermission)&&(identical(other.myLocation, _this.myLocation) || other.myLocation == _this.myLocation)&&(identical(other.followMode, _this.followMode) || other.followMode == _this.followMode));
 }
 
 
 @override
 int get hashCode {
   final _this = this as MapState;
-  return Object.hash(runtimeType,_this.hasLocationPermission,_this.myLocation);
+  return Object.hash(runtimeType,_this.hasLocationPermission,_this.myLocation,_this.followMode);
 }
 
 @override
 String toString() {
   final _this = this as MapState;
-  return 'MapState(hasLocationPermission: ${_this.hasLocationPermission}, myLocation: ${_this.myLocation})';
+  return 'MapState(hasLocationPermission: ${_this.hasLocationPermission}, myLocation: ${_this.myLocation}, followMode: ${_this.followMode})';
 }
 
 
@@ -51,7 +51,7 @@ abstract mixin class $MapStateCopyWith<$Res>  {
   factory $MapStateCopyWith(MapState value, $Res Function(MapState) _then) = _$MapStateCopyWithImpl;
 @useResult
 $Res call({
- bool hasLocationPermission, UserLocation? myLocation
+ bool hasLocationPermission, UserLocation? myLocation, FollowMode followMode
 });
 
 
@@ -68,11 +68,12 @@ class _$MapStateCopyWithImpl<$Res>
 
 /// Create a copy of MapState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? hasLocationPermission = null,Object? myLocation = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? hasLocationPermission = null,Object? myLocation = freezed,Object? followMode = null,}) {
   return _then(MapState(
 hasLocationPermission: null == hasLocationPermission ? _self.hasLocationPermission : hasLocationPermission // ignore: cast_nullable_to_non_nullable
 as bool,myLocation: freezed == myLocation ? _self.myLocation : myLocation // ignore: cast_nullable_to_non_nullable
-as UserLocation?,
+as UserLocation?,followMode: null == followMode ? _self.followMode : followMode // ignore: cast_nullable_to_non_nullable
+as FollowMode,
   ));
 }
 /// Create a copy of MapState
@@ -169,10 +170,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool hasLocationPermission,  UserLocation? myLocation)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool hasLocationPermission,  UserLocation? myLocation,  FollowMode followMode)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MapState() when $default != null:
-return $default(_that.hasLocationPermission,_that.myLocation);case _:
+return $default(_that.hasLocationPermission,_that.myLocation,_that.followMode);case _:
   return orElse();
 
 }
@@ -190,10 +191,10 @@ return $default(_that.hasLocationPermission,_that.myLocation);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool hasLocationPermission,  UserLocation? myLocation)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool hasLocationPermission,  UserLocation? myLocation,  FollowMode followMode)  $default,) {final _that = this;
 switch (_that) {
 case _MapState():
-return $default(_that.hasLocationPermission,_that.myLocation);case _:
+return $default(_that.hasLocationPermission,_that.myLocation,_that.followMode);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -210,10 +211,10 @@ return $default(_that.hasLocationPermission,_that.myLocation);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool hasLocationPermission,  UserLocation? myLocation)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool hasLocationPermission,  UserLocation? myLocation,  FollowMode followMode)?  $default,) {final _that = this;
 switch (_that) {
 case _MapState() when $default != null:
-return $default(_that.hasLocationPermission,_that.myLocation);case _:
+return $default(_that.hasLocationPermission,_that.myLocation,_that.followMode);case _:
   return null;
 
 }
@@ -225,11 +226,12 @@ return $default(_that.hasLocationPermission,_that.myLocation);case _:
 
 
 class _MapState implements MapState {
-  const _MapState({this.hasLocationPermission = false, this.myLocation});
+  const _MapState({this.hasLocationPermission = false, this.myLocation, this.followMode = FollowMode.none});
   
 
 @override@JsonKey() final  bool hasLocationPermission;
 @override final  UserLocation? myLocation;
+@override@JsonKey() final  FollowMode followMode;
 
 /// Create a copy of MapState
 /// with the given fields replaced by the non-null parameter values.
@@ -241,18 +243,18 @@ _$MapStateCopyWith<_MapState> get copyWith => __$MapStateCopyWithImpl<_MapState>
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapState&&(identical(other.hasLocationPermission, hasLocationPermission) || other.hasLocationPermission == hasLocationPermission)&&(identical(other.myLocation, myLocation) || other.myLocation == myLocation));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapState&&(identical(other.hasLocationPermission, hasLocationPermission) || other.hasLocationPermission == hasLocationPermission)&&(identical(other.myLocation, myLocation) || other.myLocation == myLocation)&&(identical(other.followMode, followMode) || other.followMode == followMode));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,hasLocationPermission,myLocation);
+    return Object.hash(runtimeType,hasLocationPermission,myLocation,followMode);
 }
 
 @override
 String toString() {
-    return 'MapState(hasLocationPermission: $hasLocationPermission, myLocation: $myLocation)';
+    return 'MapState(hasLocationPermission: $hasLocationPermission, myLocation: $myLocation, followMode: $followMode)';
 }
 
 
@@ -263,7 +265,7 @@ abstract mixin class _$MapStateCopyWith<$Res> implements $MapStateCopyWith<$Res>
   factory _$MapStateCopyWith(_MapState value, $Res Function(_MapState) _then) = __$MapStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool hasLocationPermission, UserLocation? myLocation
+ bool hasLocationPermission, UserLocation? myLocation, FollowMode followMode
 });
 
 
@@ -280,11 +282,12 @@ class __$MapStateCopyWithImpl<$Res>
 
 /// Create a copy of MapState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? hasLocationPermission = null,Object? myLocation = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? hasLocationPermission = null,Object? myLocation = freezed,Object? followMode = null,}) {
   return _then(_MapState(
 hasLocationPermission: null == hasLocationPermission ? _self.hasLocationPermission : hasLocationPermission // ignore: cast_nullable_to_non_nullable
 as bool,myLocation: freezed == myLocation ? _self.myLocation : myLocation // ignore: cast_nullable_to_non_nullable
-as UserLocation?,
+as UserLocation?,followMode: null == followMode ? _self.followMode : followMode // ignore: cast_nullable_to_non_nullable
+as FollowMode,
   ));
 }
 
