@@ -53,7 +53,8 @@ class RouteSummaryCard extends StatelessWidget {
             ),
             visualDensity: VisualDensity.compact,
             side: BorderSide.none,
-            backgroundColor: theme.colorScheme.primaryContainer,
+            // primaryContainer는 fidelity 테마에서 primary와 거의 같은 파랑이라 글자가 묻힌다.
+            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
           ),
           const SizedBox(height: 8),
           switch (result) {
