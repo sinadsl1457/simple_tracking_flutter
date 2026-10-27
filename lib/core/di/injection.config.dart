@@ -47,6 +47,11 @@ import 'package:simple_tracking/features/place/domain/search_places_use_case.dar
     as _i48;
 import 'package:simple_tracking/features/place/presentation/cubit/place_search_cubit.dart'
     as _i535;
+import 'package:simple_tracking/features/push/data/push_module.dart' as _i54;
+import 'package:simple_tracking/features/push/domain/push_repository.dart'
+    as _i596;
+import 'package:simple_tracking/features/push/presentation/cubit/push_cubit.dart'
+    as _i821;
 import 'package:simple_tracking/features/route/data/kakao_route_api.dart'
     as _i1019;
 import 'package:simple_tracking/features/route/data/route_repository_impl.dart'
@@ -71,12 +76,14 @@ extension GetItInjectableX on _i174.GetIt {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
     final registerModule = _$RegisterModule();
     final locationModule = _$LocationModule();
+    final pushModule = _$PushModule();
     await gh.factoryAsync<_i460.SharedPreferences>(
       () => registerModule.prefs(),
       preResolve: true,
     );
     gh.lazySingleton<_i361.Dio>(() => registerModule.dio());
     gh.lazySingleton<_i270.LocationRepository>(() => locationModule.location());
+    gh.lazySingleton<_i596.PushRepository>(() => pushModule.push());
     gh.factory<_i595.ObserveLocationUseCase>(
       () => _i595.ObserveLocationUseCase(gh<_i270.LocationRepository>()),
     );
@@ -99,6 +106,9 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i1046.SharedPrefsRecentSearchRepository(
         gh<_i460.SharedPreferences>(),
       ),
+    );
+    gh.factory<_i821.PushCubit>(
+      () => _i821.PushCubit(gh<_i596.PushRepository>()),
     );
     gh.lazySingleton<_i673.RecentPlaceRepository>(
       () =>
@@ -160,3 +170,5 @@ extension GetItInjectableX on _i174.GetIt {
 class _$RegisterModule extends _i702.RegisterModule {}
 
 class _$LocationModule extends _i1045.LocationModule {}
+
+class _$PushModule extends _i54.PushModule {}

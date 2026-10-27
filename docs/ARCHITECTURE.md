@@ -12,7 +12,7 @@
 lib/
 ├ main.dart / app.dart          시작점, 라우트(go_router), Cubit 생성(BlocProvider)
 ├ core/                         기능과 무관한 공통 코드
-│  ├ config/   app_config       --dart-define 값(카카오 키, 고정 위치)
+│  ├ config/   app_config       --dart-define 값(카카오 키, 고정 위치, 푸시 켜기)
 │  ├ di/       injection        get_it + injectable 설정 (Dio, SharedPreferences 등록)
 │  ├ error/    failure, result  모든 실패 종류(sealed)와 Ok/Err 결과 타입
 │  ├ geo/      geo_point, math  좌표와 거리 계산
@@ -22,6 +22,7 @@ lib/
    ├ location/   내 위치 (GPS: geolocator / FIXED_LOCATION이 있으면 고정 좌표)
    ├ place/      장소 검색, 최근 검색어, 최근 장소
    ├ route/      길찾기 (자동차·도보·대중교통), 길찾기 준비 화면, 출발지·도착지 선택
+   ├ push/       푸시 알림(FCM). 앱 전체에 하나뿐인 PushCubit — 화면 없이 app.dart에 붙는다
    └ map/        지도 화면(MapScreen) — 위 세 기능을 조립하는 곳
 
 packages/kakao_map_view/        카카오맵 SDK를 Flutter 위젯으로 쓰게 하는 로컬 플러그인
@@ -93,6 +94,50 @@ Cubit은 지도를 모른다. MapScreen이 두 통로로 지도에 전달한다.
 - 여기서 effect를 쓴 이유: 카메라 이동·토스트·권한 팝업처럼 **놓쳐도 다시 할 필요 없는 일**이라서.
 - 결제 완료 이동처럼 **절대 놓치면 안 되는 이벤트**는 state + consume이 더 안전하다.
 - 팀 표준으로 쓸 때는 `bloc_presentation` 패키지로 바꿔도 구조는 같다.
+
+### 4-4. 푸시 알림 (features/push)
+
+화면 하나에 속하지 않는 **앱 전체 기능**을 이 구조에 넣는 예. 레이어마다 하는 일이 정확히 한 가지다.
+
+| 파일 | 레이어 | 하는 일 | 모르는 것 |
+|---|---|---|---|
+| `domain/push_message.dart` | domain | 앱이 이해하는 메시지와 "갈 곳"(sealed `PushDestination`) | Firebase, 화면 경로 |
+| `domain/push_repository.dart` | domain | 바깥(FCM)의 입구 계약: 권한, 토큰, 수신 스트림 3개 | 탭하면 어디로 갈지 |
+| `data/push_message_mapper.dart` | data | 서버 페이로드 `{"type","query"}` → `PushDestination`. **페이로드 형식을 아는 유일한 곳** | |
+| `data/fcm_push_repository.dart` | data | firebase_messaging을 감싸고 도메인 모델로 바꿔 내보냄 | 화면, Cubit |
+| `data/disabled_push_repository.dart` | data | Firebase 설정 전에 쓰는 빈 구현 | |
+| `data/push_module.dart` | data | `PUSH_ENABLED`로 둘 중 하나를 싱글턴 등록 (`location_module.dart`와 같은 모양) | |
+| `data/fcm_setup.dart` | data | DI 전에 `Firebase.initializeApp()` + 백그라운드 핸들러 | |
+| `presentation/cubit/push_cubit.dart` | presentation | 수신 경로 3가지를 effect 2개(`open`, `showInApp`)로 모음 | BuildContext, router |
+| `presentation/push_effect_listener.dart` | presentation | effect → 스낵바 / `onOpen` 호출 | 어느 경로로 갈지 |
+| `app.dart` `_openPushDestination` | 앱 셸 | `PushDestination` → URL(`/?q=카페`) → `router.go` | |
+
+```
+FCM ─→ FcmPushRepository ─(PushMessage)─→ PushCubit ─(PushEffect)─→ PushEffectListener
+        RemoteMessage를                     어떤 일인지 고름            ├ showInApp → 스낵바("보기" → cubit.openInApp)
+        도메인으로 바꿈                                                 └ open → app.dart가 경로로 바꿔 router.go
+                                                                           → MapScreen(searchQuery) → 검색
+```
+
+**수신 경로 3가지** — 이게 푸시 코드가 복잡해지는 원인이라 Cubit 한 곳에서 모은다.
+
+| 앱 상태 | 알림을 누가 띄우나 | 들어오는 곳 | Cubit이 내는 effect |
+|---|---|---|---|
+| 앞에 떠 있음 | 아무도 (OS가 안 띄움) | `foregroundMessages()` | `showInApp` |
+| 백그라운드 → 탭 | OS | `openedMessages()` | `open` |
+| 꺼져 있음 → 탭해서 실행 | OS | `initialMessage()` (스트림이 아니라 한 번 꺼냄) | `open` |
+
+**왜 이렇게 나눴나**
+- **싱글턴은 repository, Cubit은 하나만 만듦**: `PushRepository`는 `@lazySingleton`. `PushCubit`은 `@injectable`(팩토리)이지만
+  `app.dart`의 `MaterialApp` 위에서 한 번만 만들어서 앱 수명 동안 하나다. 아무 데서나 `getIt<...>()`로 꺼내지 않는다.
+- **인터페이스가 실제로 일하는 곳**: 구현이 둘(`Fcm`/`Disabled`)이라 Cubit·app.dart에 `if (pushEnabled)`가 없다.
+  테스트는 `FakePushRepository`로 Firebase 없이 돈다.
+- **경로는 app.dart만 안다**: domain은 "검색하러 가라"까지만 말한다. 라우트 구조가 바뀌어도 domain·data·Cubit은 그대로.
+  나중에 딥링크(웹 링크로 앱 열기)도 같은 `/?q=` 경로로 들어오게 할 수 있다.
+- **백그라운드 핸들러는 DI 밖**: 별도 isolate라 get_it·Cubit이 비어 있다. `fcm_setup.dart`의 top-level 함수가 최소한만 한다.
+- **토큰 → 서버**: 지금은 서버가 없어서 `PushState.token`에만 둔다. 서버가 생기면
+  `DeviceApi`(Retrofit) + `DeviceRepository`를 만들고, `PushCubit._onToken`에서 "토큰 등록" UseCase(두 repo 조합)를 부른다.
+- **FCM 17 토큰 API**: `getToken()`이 deprecated, `register()` → `onRegistered`로 바뀌었다. 이 두 단계를 `tokens()` 스트림 하나로 감췄다.
 
 ## 5. 지도 플러그인 (packages/kakao_map_view)
 
@@ -181,6 +226,16 @@ VS Code는 `.vscode/launch.json`(F5)에 위 옵션과 시뮬레이터가 들어 
 | `denied` | 아직 물어볼 수 있음 (iOS 미결정, Android 한 번 거절) | `notDetermined` → 팝업 |
 | `deniedForever` | 팝업이 더 안 뜸 | `denied` → 설정 앱 안내 |
 | `whileInUse`, `always` | 허용 | `authorized` |
+
+### 푸시 켜기 (Firebase 설정)
+기본은 꺼져 있다(`DisabledPushRepository`). 켜려면:
+1. Firebase 콘솔에서 프로젝트를 만들고 앱 두 개 등록: Android `com.sintaek.simple_tracking`, iOS `com.sintaek.simpleTracking`.
+2. 설정 파일 넣기: `android/app/google-services.json`, `ios/Runner/GoogleService-Info.plist`(Xcode에서 Runner 타깃에 추가).
+   Android는 `com.google.gms.google-services` gradle 플러그인도 적용한다.
+3. iOS: Xcode → Signing & Capabilities에 **Push Notifications**, **Background Modes › Remote notifications** 추가.
+   Firebase 콘솔에 APNs 인증 키(.p8) 업로드. 시뮬레이터는 APNs 토큰이 없어 토큰이 안 나온다 → 실기기로 확인.
+4. `env/dev.json`에 `"PUSH_ENABLED": "true"`.
+5. 테스트 발송: Firebase 콘솔 › Messaging, 또는 HTTP v1 API에 `data: {"type": "search", "query": "카페"}`.
 
 ## 7. 알아 두면 좋은 함정 (실제로 겪은 것)
 

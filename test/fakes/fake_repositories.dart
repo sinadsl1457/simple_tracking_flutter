@@ -12,6 +12,9 @@ import 'package:simple_tracking/features/place/domain/place_repository.dart';
 import 'package:simple_tracking/features/place/domain/recent_place.dart';
 import 'package:simple_tracking/features/place/domain/recent_place_repository.dart';
 import 'package:simple_tracking/features/place/domain/recent_search_repository.dart';
+import 'package:simple_tracking/features/push/domain/push_message.dart';
+import 'package:simple_tracking/features/push/domain/push_permission.dart';
+import 'package:simple_tracking/features/push/domain/push_repository.dart';
 import 'package:simple_tracking/features/route/domain/route_path.dart';
 import 'package:simple_tracking/features/route/domain/route_repository.dart';
 import 'package:simple_tracking/features/route/domain/transit_route.dart';
@@ -181,4 +184,33 @@ class FakeLocationRepository implements LocationRepository {
 
   @override
   Future<void> openAppSettings() async => openSettingsCount++;
+}
+
+class FakePushRepository implements PushRepository {
+  FakePushRepository({this.permission = PushPermission.granted, this.initial});
+
+  final PushPermission permission;
+  final PushMessage? initial;
+  final foreground = StreamController<PushMessage>.broadcast();
+  final opened = StreamController<PushMessage>.broadcast();
+  final tokenEvents = StreamController<String>.broadcast();
+  bool tokensListened = false;
+
+  @override
+  Future<PushPermission> requestPermission() async => permission;
+
+  @override
+  Stream<String> tokens() {
+    tokensListened = true;
+    return tokenEvents.stream;
+  }
+
+  @override
+  Stream<PushMessage> foregroundMessages() => foreground.stream;
+
+  @override
+  Stream<PushMessage> openedMessages() => opened.stream;
+
+  @override
+  Future<PushMessage?> initialMessage() async => initial;
 }

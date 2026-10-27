@@ -38,7 +38,13 @@ import 'package:simple_tracking/features/route/presentation/widgets/travel_mode_
 
 /// 지도 화면. 세 Cubit(내 위치·검색·길찾기)의 상태를 지도와 UI에 반영한다.
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key});
+  const MapScreen({this.searchQuery, super.key});
+
+  /// 주소의 검색어 이름. `/?q=카페` → 지도에서 "카페" 검색(푸시 알림 탭 등).
+  static const searchQueryParam = 'q';
+
+  /// 들어오자마자 검색할 키워드. 화면이 떠 있는 중에 바뀌어도 다시 검색한다.
+  final String? searchQuery;
 
   static const _defaultCenter = GeoPoint(
     latitude: 37.5666,
@@ -81,6 +87,23 @@ class _MapScreenState extends State<MapScreen> {
     );
     unawaited(_mapCubit.onAppear());
     unawaited(_search.onAppear());
+    _searchFromLink(widget.searchQuery);
+  }
+
+  /// go_router는 같은 경로(`/`)에서 쿼리만 바뀌면 화면을 새로 만들지 않고 위젯만 바꾼다.
+  @override
+  void didUpdateWidget(MapScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.searchQuery != oldWidget.searchQuery) {
+      _searchFromLink(widget.searchQuery);
+    }
+  }
+
+  void _searchFromLink(String? query) {
+    if (query == null) return;
+    unawaited(
+      _search.searchFor(query, center: _mapCubit.state.myLocation?.point),
+    );
   }
 
   @override

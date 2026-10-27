@@ -87,8 +87,12 @@ class PlaceSearchCubit extends Cubit<PlaceSearchState>
   }
 
   /// 호출: 최근 검색어 탭. 그 검색어로 submit과 같은 흐름을 탄다.
-  Future<void> searchRecent(String recent, {GeoPoint? center}) {
-    emit(state.copyWith(query: recent));
+  Future<void> searchRecent(String recent, {GeoPoint? center}) =>
+      searchFor(recent, center: center);
+
+  /// 호출: 검색 입력 없이 바로 [query]로 찾을 때(최근 검색어, 푸시 알림 링크).
+  Future<void> searchFor(String query, {GeoPoint? center}) {
+    emit(state.copyWith(query: query));
     return submit(center: center);
   }
 
