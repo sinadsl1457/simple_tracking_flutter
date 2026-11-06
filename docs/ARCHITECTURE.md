@@ -107,7 +107,7 @@ Cubit은 지도를 모른다. MapScreen이 두 통로로 지도에 전달한다.
 | `data/push_message_mapper.dart` | data | 서버 페이로드 `{"type","query"}` → `PushDestination`. **페이로드 형식을 아는 유일한 곳** | |
 | `data/fcm_push_repository.dart` | data | firebase_messaging을 감싸고 도메인 모델로 바꿔 내보냄 | 화면, Cubit |
 | `data/disabled_push_repository.dart` | data | Firebase 설정 전에 쓰는 빈 구현 | |
-| `data/push_module.dart` | data | `PUSH_ENABLED`로 둘 중 하나를 싱글턴 등록 (`location_module.dart`와 같은 모양) | |
+| `data/push_module.dart` | data | `PUSH_ENABLED`로 둘 중 하나를 싱글턴 등록 (위치의 `location_providers.dart`와 같은 역할) | |
 | `data/fcm_setup.dart` | data | DI 전에 `Firebase.initializeApp()` + 백그라운드 핸들러 | |
 | `presentation/cubit/push_cubit.dart` | presentation | 수신 경로 3가지를 effect 2개(`open`, `showInApp`)로 모음 | BuildContext, router |
 | `presentation/push_effect_listener.dart` | presentation | effect → 스낵바 / `onOpen` 호출 | 어느 경로로 갈지 |
@@ -193,7 +193,7 @@ Native KakaoMapViewPlugin (등록) → KakaoMapViewFactory.create
 - 단, 지도를 옮겨 둔 상태(`isCameraOnMyLocation == false`: 드래그·검색·길찾기 이후)에서 누르면 카메라만 내 위치로
   옮기고 `none`을 유지한다(마커도 그대로). 한 번 더 눌러야 `follow`가 되어 콘(부채꼴)이 나온다.
   첫 위치 자동 이동 뒤에는 이미 내 위치라 첫 탭에 바로 따라가기.
-- 상태(`FollowMode`)는 `MapCubit`이 갖고, `MapScreen`이 `setFollowMode`로 지도에 알린다. 카메라 추적은 카카오 SDK의
+- 상태(`FollowMode`)는 `MapNotifier`(Riverpod)가 갖고, `MapScreen`이 `setFollowMode`로 지도에 알린다. 카메라 추적은 카카오 SDK의
   **TrackingManager**(iOS `getTrackingManager().startTrackingPoi`, Android `trackingManager.startTracking`)가 한다.
   트래킹은 마커의 이동 애니메이션을 매 프레임 따라가서, Dart에서 카메라를 따로 옮기는 것보다 마커와 어긋나지 않는다.
 - `followWithHeading`은 트래킹의 회전 추적(`isTrackingRoll` / `setTrackingRotation`)을 켠다. 지도가 내 위치 마커의 회전을
@@ -220,7 +220,7 @@ flutter test
 VS Code는 `.vscode/launch.json`(F5)에 위 옵션과 시뮬레이터가 들어 있다. 터미널은 `make run` / `make run-android`.
 
 ### 내 위치: 고정 좌표 vs 실제 GPS
-`location_module.dart`가 고른다. `FIXED_LOCATION`("위도,경도")이 있으면 `FixedLocationRepository`, 없으면 `GpsLocationRepository`(geolocator).
+`location_providers.dart`의 `locationRepositoryProvider`가 고른다. `FIXED_LOCATION`("위도,경도")이 있으면 `FixedLocationRepository`, 없으면 `GpsLocationRepository`(geolocator).
 - `make run-gps` / `make run-android-gps`: env 파일은 그대로 두고 `FIXED_LOCATION`만 비워 GPS로 실행한다.
 - 가상 위치 넣기: iOS `xcrun simctl location <udid> set 위도,경도`, Android `adb emu geo fix 경도 위도`(순서 주의).
 - 시뮬레이터·에뮬레이터는 **속도를 0으로 보내서** 이동 화살표가 안 나온다(0.5m/s 미만이면 방향을 버리는 규칙). 화살표는 실기기로 확인.
@@ -246,7 +246,7 @@ VS Code는 `.vscode/launch.json`(F5)에 위 옵션과 시뮬레이터가 들어 
 | 증상 | 원인 | 위치 |
 |---|---|---|
 | 하단 시트가 안 끌림 | `DraggableScrollableSheet.snapSizes`를 빌드마다 새 리스트로 넘김 (객체 동일성 비교) | `map_bottom_sheet.dart` |
-| 백그라운드 후 위치 구독 재시작 안 됨 | `async*` 안에서 끝나지 않는 await → `cancel()`이 끝나지 않음 | `fixed_location_repository.dart`, `map_cubit.dart` |
+| 백그라운드 후 위치 구독 재시작 안 됨 | `async*` 안에서 끝나지 않는 await → `cancel()`이 끝나지 않음 | `fixed_location_repository.dart`, `map_notifier.dart` |
 | Retrofit 생성 코드 컴파일 에러 | `@Query` 기본값 상수를 클래스명 없이 복사 → `KakaoPlaceApi.pageSize`로 써야 함 | `kakao_place_api.dart` |
 | analyzer가 컴파일 에러를 못 잡음 | 생성 파일을 analyzer에서 exclude | `analysis_options.yaml` |
 | 첫 `onMapReady`를 놓칠 수 있음 | Flutter viewId는 뷰 생성 후에야 알 수 있음 → Dart가 만든 channelId 사용 | `kakao_map_view.dart` |

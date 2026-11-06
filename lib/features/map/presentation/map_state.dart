@@ -1,4 +1,4 @@
-// [map/presentation] MapCubit의 상태(State)와 일회성 effect 모델. 로직은 map_cubit.dart.
+// [map/presentation] MapNotifier의 상태(State)와 일회성 effect 모델. 로직은 map_notifier.dart.
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:simple_tracking/core/error/failure.dart';
@@ -49,7 +49,7 @@ sealed class MapEffect with _$MapEffect {
   /// 내 위치를 아직 받지 못했다.
   const factory MapEffect.findingLocation() = FindingLocationEffect;
 
-  /// 화면이 받으면 `MapCubit.requestLocationPermission`을 부른다.
+  /// 화면이 받으면 `MapNotifier.requestLocationPermission`을 부른다.
   const factory MapEffect.requestLocationPermission() =
       RequestLocationPermissionEffect;
 

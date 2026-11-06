@@ -1,11 +1,12 @@
-// [map/presentation] 지도 화면 = 앱의 메인 화면. 세 Cubit(MapCubit·PlaceSearchCubit·RouteCubit)을 지도와 UI에 연결한다.
-// 지도 반영 통로: 상태 변화는 BlocListener, 일회성 이벤트는 EffectListener(docs/ARCHITECTURE.md 4-3).
+// [map/presentation] 지도 화면 = 앱의 메인 화면. 내 위치(MapNotifier, Riverpod)와 검색·길찾기(Cubit)를 지도와 UI에 연결한다.
+// 지도 반영 통로: 상태 변화는 ref.listen·BlocListener, 일회성 이벤트는 EffectListener(docs/ARCHITECTURE.md 4-3).
 // 파일 순서: 지도 명령 → 사용자 동작 → effect 처리 → 화면 구성
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kakao_map_view/kakao_map_view.dart';
 import 'package:simple_tracking/core/config/app_config.dart';
@@ -15,7 +16,7 @@ import 'package:simple_tracking/core/presentation/widgets/effect_listener.dart';
 import 'package:simple_tracking/core/presentation/widgets/map_bottom_sheet.dart';
 import 'package:simple_tracking/core/presentation/widgets/measure_size.dart';
 import 'package:simple_tracking/core/presentation/widgets/toast.dart';
-import 'package:simple_tracking/features/map/presentation/cubit/map_cubit.dart';
+import 'package:simple_tracking/features/map/presentation/map_notifier.dart';
 import 'package:simple_tracking/features/map/presentation/map_overlay_mapper.dart';
 import 'package:simple_tracking/features/map/presentation/widgets/my_location_button.dart';
 import 'package:simple_tracking/features/place/domain/place.dart';
@@ -36,8 +37,8 @@ import 'package:simple_tracking/features/route/presentation/widgets/route_summar
 import 'package:simple_tracking/features/route/presentation/widgets/transit_route_list.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/travel_mode_tabs.dart';
 
-/// 지도 화면. 세 Cubit(내 위치·검색·길찾기)의 상태를 지도와 UI에 반영한다.
-class MapScreen extends StatefulWidget {
+/// 지도 화면. 내 위치·검색·길찾기 상태를 지도와 UI에 반영한다.
+class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({this.searchQuery, super.key});
 
   /// 주소의 검색어 이름. `/?q=카페` → 지도에서 "카페" 검색(푸시 알림 탭 등).
@@ -52,10 +53,10 @@ class MapScreen extends StatefulWidget {
   );
 
   @override
-  State<MapScreen> createState() => _MapScreenState();
+  ConsumerState<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends State<MapScreen> {
+class _MapScreenState extends ConsumerState<MapScreen> {
   KakaoMapController? _map;
 
   /// 지도가 준비되기 전에 들어온 카메라 명령. 마지막 것만 의미가 있다.
@@ -74,7 +75,10 @@ class _MapScreenState extends State<MapScreen> {
   double _routeCardHeight = 0;
   late final AppLifecycleListener _lifecycle;
 
-  MapCubit get _mapCubit => context.read<MapCubit>();
+  MapNotifier get _myLocation => ref.read(mapProvider.notifier);
+
+  /// 이벤트 처리 중에 읽는 현재 값(다시 그리기와 무관). 화면을 그릴 때는 build에서 ref.watch.
+  MapState get _mapState => ref.read(mapProvider);
   PlaceSearchCubit get _search => context.read<PlaceSearchCubit>();
   RouteCubit get _route => context.read<RouteCubit>();
 
@@ -82,10 +86,10 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _lifecycle = AppLifecycleListener(
-      onResume: () => unawaited(_mapCubit.onBecameActive()),
-      onPause: () => _mapCubit.onEnteredBackground(),
+      onResume: () => unawaited(_myLocation.onBecameActive()),
+      onPause: () => _myLocation.onEnteredBackground(),
     );
-    unawaited(_mapCubit.onAppear());
+    unawaited(_myLocation.onAppear());
     unawaited(_search.onAppear());
     _searchFromLink(widget.searchQuery);
   }
@@ -101,9 +105,7 @@ class _MapScreenState extends State<MapScreen> {
 
   void _searchFromLink(String? query) {
     if (query == null) return;
-    unawaited(
-      _search.searchFor(query, center: _mapCubit.state.myLocation?.point),
-    );
+    unawaited(_search.searchFor(query, center: _mapState.myLocation?.point));
   }
 
   @override
@@ -117,8 +119,8 @@ class _MapScreenState extends State<MapScreen> {
   void _onMapCreated(KakaoMapController map) {
     _map = map;
     // 준비 전에 쌓인 상태를 한 번에 맞춘다.
-    unawaited(map.updateMyLocation(_mapCubit.state.myLocation?.toMyLocation()));
-    unawaited(map.setFollowMode(_mapCubit.state.followMode.toMapFollowMode()));
+    unawaited(map.updateMyLocation(_mapState.myLocation?.toMyLocation()));
+    unawaited(map.setFollowMode(_mapState.followMode.toMapFollowMode()));
     _syncPlaceMarkers();
     unawaited(map.showRoute(_route.state.overlay));
     if (_pendingCamera case final command?) unawaited(command(map));
@@ -162,7 +164,7 @@ class _MapScreenState extends State<MapScreen> {
   /// 내 위치가 아닌 곳(검색 결과, 경로)으로 카메라를 옮긴다. 따라가기를 먼저 꺼야
   /// 트래킹이 카메라를 내 위치로 되돌리지 않는다.
   void _cameraAwayFromMe(VoidCallback move) {
-    _mapCubit.stopFollowing();
+    _myLocation.stopFollowing();
     move();
   }
 
@@ -172,26 +174,24 @@ class _MapScreenState extends State<MapScreen> {
   /// 카테고리 검색 기준: 지금 보고 있는 지도 중심 → 내 위치 → 기본 위치.
   GeoPoint get _searchCenter =>
       _cameraPosition?.center.toGeoPoint() ??
-      _mapCubit.state.myLocation?.point ??
+      _mapState.myLocation?.point ??
       MapScreen._defaultCenter;
 
   // ── 사용자 동작 ──
 
   void _startRoute(Place place) {
     // 권한이 없으면 길찾기 대신 권한부터 요청한다.
-    if (!_mapCubit.state.hasLocationPermission) {
-      _mapCubit.onMyLocationButtonTapped();
+    if (!_mapState.hasLocationPermission) {
+      _myLocation.onMyLocationButtonTapped();
       return;
     }
     setState(() => _transitSheetDetent = SheetDetent.medium);
-    unawaited(
-      _route.start(place, myLocation: _mapCubit.state.myLocation?.point),
-    );
+    unawaited(_route.start(place, myLocation: _mapState.myLocation?.point));
   }
 
   /// 출발지([isOrigin]) 또는 도착지를 검색해 바꾼다.
   Future<void> _pickEndpoint({required bool isOrigin}) async {
-    final myLocation = _mapCubit.state.myLocation?.point;
+    final myLocation = _mapState.myLocation?.point;
     final endpoint = await context.push<RouteEndpoint>(
       EndpointPickerPage.path,
       extra: EndpointPickerArgs(
@@ -210,7 +210,7 @@ class _MapScreenState extends State<MapScreen> {
     final plan = await context.push<RoutePlan>(
       RoutePlannerPage.path,
       extra: RoutePlannerArgs(
-        myLocation: _mapCubit.state.myLocation?.point,
+        myLocation: _mapState.myLocation?.point,
         mode: _route.state.selectedMode,
       ),
     );
@@ -220,7 +220,7 @@ class _MapScreenState extends State<MapScreen> {
       origin: plan.origin,
       destination: plan.destination,
       mode: plan.mode,
-      myLocation: _mapCubit.state.myLocation?.point,
+      myLocation: _mapState.myLocation?.point,
     );
   }
 
@@ -229,7 +229,7 @@ class _MapScreenState extends State<MapScreen> {
   /// 길찾기 중에 따라가기를 켰더라도 끈다. 켜 두면 복원한 카메라를 트래킹이 다시 끌고 간다.
   void _closeRoute() {
     _route.closeRoute();
-    _mapCubit.stopFollowing();
+    _myLocation.stopFollowing();
     final before = _cameraBeforeRoute;
     _cameraBeforeRoute = null;
     if (before != null) {
@@ -258,7 +258,7 @@ class _MapScreenState extends State<MapScreen> {
         ],
       ),
     );
-    if (open ?? false) await _mapCubit.openAppSettings();
+    if (open ?? false) await _myLocation.openAppSettings();
   }
 
   // ── 이펙트 ──
@@ -271,7 +271,7 @@ class _MapScreenState extends State<MapScreen> {
     MapFailureEffect(:final failure) => _showToast(failure.userMessage),
     FindingLocationEffect() => _showToast('현재 위치를 찾고 있어요'),
     RequestLocationPermissionEffect() => unawaited(
-      _mapCubit.requestLocationPermission(),
+      _myLocation.requestLocationPermission(),
     ),
     ShowSettingsPromptEffect() => unawaited(_showSettingsPrompt()),
   };
@@ -316,21 +316,22 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     if (AppConfig.kakaoNativeAppKey.isEmpty) return const _MissingKeyNotice();
 
-    // Cubit 상태 → 지도 반영. Cubit은 지도를 모르고, 여기서만 지도 명령으로 바꾼다.
+    // 상태 → 지도 반영. Notifier·Cubit은 지도를 모르고, 여기서만 지도 명령으로 바꾼다.
+    // ref.listen은 build 안에서 부르면 Riverpod이 한 번만 등록한다(BlocListener의 Riverpod 판).
+    // 내 위치가 바뀌면 지도 위 파란 점을 옮긴다.
+    ref
+      ..listen(
+        mapProvider.select((s) => s.myLocation),
+        (_, location) =>
+            unawaited(_map?.updateMyLocation(location?.toMyLocation())),
+      )
+      // 따라가기 모드를 지도에 알린다. 카메라 추적은 네이티브 트래킹이 한다.
+      ..listen(
+        mapProvider.select((s) => s.followMode),
+        (_, mode) => unawaited(_map?.setFollowMode(mode.toMapFollowMode())),
+      );
     return MultiBlocListener(
       listeners: [
-        // 내 위치가 바뀌면 지도 위 파란 점을 옮긴다.
-        BlocListener<MapCubit, MapState>(
-          listenWhen: (a, b) => a.myLocation != b.myLocation,
-          listener: (_, s) =>
-              unawaited(_map?.updateMyLocation(s.myLocation?.toMyLocation())),
-        ),
-        // 따라가기 모드를 지도에 알린다. 카메라 추적은 네이티브 트래킹이 한다.
-        BlocListener<MapCubit, MapState>(
-          listenWhen: (a, b) => a.followMode != b.followMode,
-          listener: (_, s) =>
-              unawaited(_map?.setFollowMode(s.followMode.toMapFollowMode())),
-        ),
         // 검색 결과·선택이 바뀌면 번호 핀을 다시 그린다.
         BlocListener<PlaceSearchCubit, PlaceSearchState>(
           listenWhen: (a, b) =>
@@ -369,7 +370,7 @@ class _MapScreenState extends State<MapScreen> {
       ],
       // Cubit 일회성 이벤트 → 지도 카메라·토스트·대화상자.
       child: EffectListener<MapEffect>(
-        effects: _mapCubit.effects,
+        effects: _myLocation.effects,
         onEffect: _onMapEffect,
         child: EffectListener<PlaceSearchEffect>(
           effects: _search.effects,
@@ -387,7 +388,7 @@ class _MapScreenState extends State<MapScreen> {
   /// 화면 구성(Stack, 아래에서 위 순서): 지도 → 로드 실패 안내 → 상단(검색창·칩 또는 길찾기 카드·탭)
   /// → 하단(장소 시트 / 대중교통 시트 / 경로 요약 카드) → 내 위치 버튼 → 토스트 → 검색 페이지.
   Widget _buildBody(BuildContext context) {
-    final mapState = context.watch<MapCubit>().state;
+    final mapState = ref.watch(mapProvider);
     final search = context.watch<PlaceSearchCubit>().state;
     final route = context.watch<RouteCubit>().state;
 
@@ -416,8 +417,8 @@ class _MapScreenState extends State<MapScreen> {
               onCameraIdle: (position) => _cameraPosition = position,
               onMarkerTapped: _search.selectPlace,
               onUserGesture: (gesture) => switch (gesture) {
-                MapGesture.pan => _mapCubit.onMapPanned(),
-                MapGesture.rotate => _mapCubit.onMapRotated(),
+                MapGesture.pan => _myLocation.onMapPanned(),
+                MapGesture.rotate => _myLocation.onMapRotated(),
               },
               onError: (message) => setState(() => _mapError = message),
             ),
@@ -486,7 +487,7 @@ class _MapScreenState extends State<MapScreen> {
               hasPermission: mapState.hasLocationPermission,
               followMode: mapState.followMode,
               isCameraOnMyLocation: mapState.isCameraOnMyLocation,
-              onPressed: _mapCubit.onMyLocationButtonTapped,
+              onPressed: _myLocation.onMyLocationButtonTapped,
             ),
           ),
           Positioned(
@@ -553,9 +554,8 @@ class _MapScreenState extends State<MapScreen> {
           destinationName: route.destination!.title,
           onTapOrigin: () => unawaited(_pickEndpoint(isOrigin: true)),
           onTapDestination: () => unawaited(_pickEndpoint(isOrigin: false)),
-          onSwap: () => unawaited(
-            _route.swap(myLocation: _mapCubit.state.myLocation?.point),
-          ),
+          onSwap: () =>
+              unawaited(_route.swap(myLocation: _mapState.myLocation?.point)),
           onClose: _closeRoute,
         ),
         const SizedBox(height: 8),

@@ -15,14 +15,6 @@ import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:shared_preferences/shared_preferences.dart' as _i460;
 import 'package:simple_tracking/core/di/register_module.dart' as _i702;
-import 'package:simple_tracking/features/location/data/location_module.dart'
-    as _i1045;
-import 'package:simple_tracking/features/location/domain/location_repository.dart'
-    as _i270;
-import 'package:simple_tracking/features/location/domain/observe_location_use_case.dart'
-    as _i595;
-import 'package:simple_tracking/features/map/presentation/cubit/map_cubit.dart'
-    as _i6;
 import 'package:simple_tracking/features/place/data/kakao_place_api.dart'
     as _i1070;
 import 'package:simple_tracking/features/place/data/place_repository_impl.dart'
@@ -75,18 +67,13 @@ extension GetItInjectableX on _i174.GetIt {
   }) async {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
     final registerModule = _$RegisterModule();
-    final locationModule = _$LocationModule();
     final pushModule = _$PushModule();
     await gh.factoryAsync<_i460.SharedPreferences>(
       () => registerModule.prefs(),
       preResolve: true,
     );
     gh.lazySingleton<_i361.Dio>(() => registerModule.dio());
-    gh.lazySingleton<_i270.LocationRepository>(() => locationModule.location());
     gh.lazySingleton<_i596.PushRepository>(() => pushModule.push());
-    gh.factory<_i595.ObserveLocationUseCase>(
-      () => _i595.ObserveLocationUseCase(gh<_i270.LocationRepository>()),
-    );
     gh.lazySingleton<_i1070.KakaoPlaceApi>(
       () => _i1070.KakaoPlaceApi(gh<_i361.Dio>()),
     );
@@ -95,12 +82,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i928.PlaceRepository>(
       () => _i763.PlaceRepositoryImpl(gh<_i1070.KakaoPlaceApi>()),
-    );
-    gh.factory<_i6.MapCubit>(
-      () => _i6.MapCubit(
-        gh<_i595.ObserveLocationUseCase>(),
-        gh<_i270.LocationRepository>(),
-      ),
     );
     gh.lazySingleton<_i982.RecentSearchRepository>(
       () => _i1046.SharedPrefsRecentSearchRepository(
@@ -168,7 +149,5 @@ extension GetItInjectableX on _i174.GetIt {
 }
 
 class _$RegisterModule extends _i702.RegisterModule {}
-
-class _$LocationModule extends _i1045.LocationModule {}
 
 class _$PushModule extends _i54.PushModule {}

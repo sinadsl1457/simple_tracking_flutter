@@ -1,4 +1,5 @@
 // [앱 셸] go_router 라우트 표. 화면(경로)과 그 화면이 쓸 Cubit(BlocProvider)을 여기서만 만든다.
+// Riverpod으로 옮긴 상태(MapNotifier)는 화면이 처음 읽을 때 생기고 떠나면 정리돼서 여기서 만들지 않는다.
 // 규칙: 위젯 안에서 getIt을 부르지 않는다. 화면 이동은 경로 상수(XxxPage.path)로 context.go/push.
 // 라우트: / (지도, ?q=검색어) · /route-planner (길찾기 준비) · /endpoint (출발지·도착지 선택)
 // 쓰는 곳: app.dart(MaterialApp.router), 푸시 탭 이동(pushDestinationLocation).
@@ -6,7 +7,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:simple_tracking/core/di/injection.dart';
-import 'package:simple_tracking/features/map/presentation/cubit/map_cubit.dart';
 import 'package:simple_tracking/features/map/presentation/map_screen.dart';
 import 'package:simple_tracking/features/place/presentation/cubit/place_search_cubit.dart';
 import 'package:simple_tracking/features/push/domain/push_message.dart';
@@ -22,7 +22,6 @@ final appRouter = GoRouter(
       path: '/',
       builder: (context, state) => MultiBlocProvider(
         providers: [
-          BlocProvider(create: (_) => getIt<MapCubit>()),
           BlocProvider(create: (_) => getIt<PlaceSearchCubit>()),
           BlocProvider(create: (_) => getIt<RouteCubit>()),
         ],

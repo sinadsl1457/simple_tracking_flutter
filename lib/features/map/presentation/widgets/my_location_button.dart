@@ -1,7 +1,7 @@
 // [map/presentation] 우하단 내 위치 버튼. 아이콘으로 따라가기 모드를 보여 준다.
 
 import 'package:flutter/material.dart';
-import 'package:simple_tracking/features/map/presentation/cubit/map_state.dart';
+import 'package:simple_tracking/features/map/presentation/map_state.dart';
 
 /// 우하단에 떠 있는 원형 내 위치 버튼.
 ///

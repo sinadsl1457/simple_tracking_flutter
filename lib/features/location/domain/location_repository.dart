@@ -1,6 +1,6 @@
 // [location/domain] 위치 저장소 인터페이스. 구현: data/gps_location_repository.dart(실제 GPS),
-// data/fixed_location_repository.dart(FIXED_LOCATION 고정 좌표). 고르는 곳: data/location_module.dart
-// MapCubit이 권한 조회·요청에 직접 쓰고, 위치 스트림은 ObserveLocationUseCase를 거친다.
+// data/fixed_location_repository.dart(FIXED_LOCATION 고정 좌표). 고르는 곳: data/location_providers.dart
+// MapNotifier가 권한 조회·요청에 직접 쓰고, 위치 스트림은 ObserveLocationUseCase를 거친다.
 
 import 'package:simple_tracking/features/location/domain/location_permission.dart';
 import 'package:simple_tracking/features/location/domain/user_location.dart';

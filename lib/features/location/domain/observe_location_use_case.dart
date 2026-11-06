@@ -1,11 +1,9 @@
 // [location/domain] 내 위치 스트림 = 마지막 위치 + 실시간 위치, 정확도 50m 초과는 버림.
-// 사용처: MapCubit
+// 사용처: MapNotifier. 만드는 곳: data/location_providers.dart
 
-import 'package:injectable/injectable.dart';
 import 'package:simple_tracking/features/location/domain/location_repository.dart';
 import 'package:simple_tracking/features/location/domain/user_location.dart';
 
-@injectable
 class ObserveLocationUseCase {
   const ObserveLocationUseCase(this._repository);
 

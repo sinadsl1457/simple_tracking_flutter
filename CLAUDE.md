@@ -3,7 +3,13 @@
 > fence(울타리) 프로젝트 회고를 바탕으로 정리한 규칙. 새 프로젝트 루트에 `CLAUDE.md`로 두고 사용.
 
 ## 스택
-- 상태관리: flutter_bloc (Cubit 우선). provider 등 다른 상태관리 혼용 금지.
+- 상태관리: **Riverpod으로 옮기는 중(`riverpod` 브랜치).** 옮긴 기능은 Riverpod(`@riverpod` Notifier, riverpod_generator),
+  아직 안 옮긴 기능은 flutter_bloc(Cubit). 한 기능 안에서 둘을 섞지 않는다. 다 옮기면 flutter_bloc·get_it을 뺀다.
+  - 지금 Riverpod: 위치(location_providers), 지도(MapNotifier). 나머지(검색·길찾기·푸시)는 Cubit.
+- Riverpod 규칙: 상태 클래스는 `XxxNotifier`(파일 `xxx_notifier.dart`) + `xxx_state.dart`(freezed).
+  의존성은 provider로 주입(`ref.watch(xxxProvider)`), 테스트는 `ProviderContainer.test(overrides: ...)`.
+  화면에 붙은 상태는 autoDispose(기본값), 앱 수명 객체(저장소)는 `@Riverpod(keepAlive: true)`.
+  await 뒤에 state를 바꾸기 전 `ref.mounted`를 확인한다. 일회성 이벤트는 `EffectChannel`(core/presentation).
 - DI: get_it + injectable (자동 생성만 사용, 외부 객체(Dio 등)는 `@module`로만 등록).
 - 네트워크: dio + retrofit. http 패키지 사용 금지.
 - 모델: freezed + json_serializable.
@@ -46,7 +52,7 @@ lib/
 - 다른 Cubit 상태를 `getIt<XCubit>().state`로 꺼내 읽지 말 것. 필요한 값은 파라미터로 받거나 스트림 구독.
 - 위젯에서 getIt 직접 호출 금지. `BlocProvider(create: (_) => getIt<XCubit>())`는 라우트에서만.
 - State·Effect 모델(freezed, sealed class)은 Cubit 파일에 두지 않고 `<name>_state.dart`로 분리한다.
-  Cubit 파일에는 Cubit 클래스(로직)만 둔다. 예: `map_cubit.dart` + `map_state.dart`.
+  Cubit·Notifier 파일에는 로직만 둔다. 예: `map_notifier.dart` + `map_state.dart`.
 
 ## 인증/네트워크
 - 토큰 주입은 Interceptor 한 곳에서만. `dio.options.headers` 직접 수정 금지.

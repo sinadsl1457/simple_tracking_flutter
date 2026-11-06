@@ -1,4 +1,4 @@
-// [push/data] PushRepository를 "어떻게 만들지" 정하는 DI 모듈. location_module.dart와 같은 모양.
+// [push/data] PushRepository를 "어떻게 만들지" 정하는 DI 모듈. (위치는 Riverpod으로 옮겨 location_providers.dart가 같은 일을 한다.)
 // 모듈인 이유: ① FirebaseMessaging.instance는 남의 싱글턴이라 어노테이션을 못 붙이고
 // ② 설정(PUSH_ENABLED)에 따라 FCM/비활성 구현을 골라야 해서.
 
