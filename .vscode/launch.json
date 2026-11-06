@@ -12,6 +12,15 @@
       "toolArgs": ["--dart-define-from-file=env/dev.json"]
     },
     {
+      "name": "simple_tracking (dev, my iPhone)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      // 내 아이폰 실기기(USB 또는 무선). 실제 GPS로 보려면 toolArgs에 "--dart-define=FIXED_LOCATION="을 추가한다.
+      "deviceId": "00008150-0012182A2233401C",
+      "toolArgs": ["--dart-define-from-file=env/dev.json"]
+    },
+    {
       "name": "simple_tracking (dev, Android)",
       "request": "launch",
       "type": "dart",
