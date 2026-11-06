@@ -81,6 +81,7 @@ class PlaceSearchNotifier extends _$PlaceSearchNotifier {
       isSearchPageOpen: true,
       suggestFor: '',
       suggestions: const [],
+      suggestionsQuery: '',
     );
   }
 
@@ -92,18 +93,22 @@ class PlaceSearchNotifier extends _$PlaceSearchNotifier {
 
   /// 호출: 검색 페이지 입력칸이 바뀔 때마다(실시간 검색).
   /// 입력이 [suggestDelay] 동안 멈추면 그 검색어로 미리보기를 찾는다. 연달아 입력하면 마지막 것만 요청한다.
-  /// 공백만 바뀌어 검색어가 같으면 다시 찾지 않는다. 입력을 다 지우면 미리보기를 비운다(최근 검색어로 돌아감).
+  /// 공백만 바뀌어 검색어가 같으면 다시 찾지 않는다. 새 결과가 올 때까지 이전 결과는 그대로 둔다.
+  /// 입력을 다 지우면 미리보기를 비운다(최근 검색어로 돌아감).
   void onQueryChanged(String query, {GeoPoint? center}) {
     state = state.copyWith(query: query);
     final normalized = normalizeQuery(query);
     if (normalized == state.suggestFor) return;
     _cancelSuggest();
-    state = state.copyWith(
-      suggestFor: normalized,
-      suggestions: const [],
-      isSuggesting: normalized.isNotEmpty,
-    );
-    if (normalized.isEmpty) return;
+    if (normalized.isEmpty) {
+      state = state.copyWith(
+        suggestFor: '',
+        suggestions: const [],
+        suggestionsQuery: '',
+      );
+      return;
+    }
+    state = state.copyWith(suggestFor: normalized, isSuggesting: true);
     final generation = _suggestGeneration;
     _suggestTimer = Timer(
       suggestDelay,
@@ -114,7 +119,8 @@ class PlaceSearchNotifier extends _$PlaceSearchNotifier {
   /// 호출: 검색 페이지 미리보기에서 장소 탭. 다시 요청하지 않고 미리보기 결과를 그대로 지도에 띄운 뒤
   /// 그 장소를 고른다(카메라는 그 장소로). 검색어는 최근 검색어에 남긴다.
   Future<void> pickSuggestion(Place place) async {
-    final keyword = state.suggestFor;
+    // 누른 장소가 속한 검색어(입력이 더 진행됐어도 이 목록을 찾은 검색어로 남긴다).
+    final keyword = state.suggestionsQuery;
     final places = state.suggestions;
     _cancelSuggest();
     _generation++; // 진행 중이던 제출 검색이 있으면 버린다
@@ -244,6 +250,7 @@ class PlaceSearchNotifier extends _$PlaceSearchNotifier {
     if (generation != _suggestGeneration) return;
     state = state.copyWith(
       isSuggesting: false,
+      suggestionsQuery: query,
       // 미리보기 실패는 조용히 비운다(글자마다 오류 토스트를 띄우지 않는다). 엔터 검색은 오류를 보인다.
       suggestions: switch (result) {
         Ok(:final value) => value,

@@ -37,11 +37,14 @@ abstract class PlaceSearchState with _$PlaceSearchState {
     Place? selectedPlace,
     @Default([]) List<String> recentQueries,
 
-    /// 실시간 검색: 미리보기가 어떤 검색어의 결과인지(공백 정리한 값). 비어 있으면 미리보기 없음 → 최근 검색어.
+    /// 실시간 검색: 지금 입력(공백 정리한 값). 비어 있으면 미리보기 없음 → 최근 검색어.
     @Default('') String suggestFor,
 
-    /// [suggestFor]로 찾은 장소. 검색 페이지에서 입력하는 동안 보여 준다.
+    /// 화면에 보이는 미리보기 장소. 새 입력의 결과가 올 때까지 이전 결과를 그대로 둔다(깜빡임 방지).
     @Default([]) List<Place> suggestions,
+
+    /// [suggestions]가 어떤 검색어의 결과인지. 입력 중에는 [suggestFor]와 다를 수 있다.
+    @Default('') String suggestionsQuery,
 
     /// 미리보기 요청이 대기 중이거나 진행 중인지.
     @Default(false) bool isSuggesting,

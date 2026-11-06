@@ -337,6 +337,52 @@ void main() {
       });
     });
 
+    test('새 입력을 찾는 동안 이전 결과를 그대로 보여 준다(깜빡임 없음)', () {
+      fakeAsync((async) {
+        final old = [Fixtures.place('old')];
+        final repository = FakePlaceRepository(
+          byQuery: {'카': old, '카페': cafes},
+        );
+        final notifier = makeNotifier(repository)..onQueryChanged('카');
+        async
+          ..elapse(wait)
+          ..flushMicrotasks();
+
+        notifier.onQueryChanged('카페');
+        expect(state().suggestions, old); // 비우지 않는다
+        expect(state().suggestionsQuery, '카');
+
+        async
+          ..elapse(wait)
+          ..flushMicrotasks();
+        expect(state().suggestions, cafes);
+        expect(state().suggestionsQuery, '카페');
+      });
+    });
+
+    test('입력 중에 이전 결과를 고르면 그 결과를 찾은 검색어를 남긴다', () {
+      fakeAsync((async) {
+        final old = [Fixtures.place('old')];
+        final recents = FakeRecentSearchRepository();
+        final repository = FakePlaceRepository(byQuery: {'카': old});
+        final notifier = makeNotifier(repository, recents: recents)
+          ..onQueryChanged('카');
+        async
+          ..elapse(wait)
+          ..flushMicrotasks();
+        notifier.onQueryChanged('카페'); // 아직 요청 전
+
+        unawaited(notifier.pickSuggestion(old.single));
+        async
+          ..elapse(wait * 2)
+          ..flushMicrotasks();
+
+        expect(state().source, const SearchSource.keyword('카'));
+        expect(recents.stored, ['카']);
+        expect(repository.receivedQueries, ['카']); // '카페' 대기 요청은 취소
+      });
+    });
+
     test('공백만 바뀌면 다시 찾지 않는다', () {
       fakeAsync((async) {
         final repository = FakePlaceRepository(result: cafes);

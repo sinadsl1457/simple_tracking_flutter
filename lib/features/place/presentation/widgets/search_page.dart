@@ -65,7 +65,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 child: _SuggestionList(
                   query: state.suggestFor,
                   places: state.suggestions,
-                  isLoading: state.isSuggesting,
+                  // 지금 입력의 결과가 도착했는데 비어 있을 때만 "결과 없음"
+                  isEmptyResult:
+                      !state.isSuggesting &&
+                      state.suggestions.isEmpty &&
+                      state.suggestionsQuery == state.suggestFor,
                   center: widget.center,
                   onPick: (place) => unawaited(_search.pickSuggestion(place)),
                 ),
@@ -119,28 +123,27 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   }
 }
 
-/// 실시간 검색 미리보기. 받는 중에는 위에 얇은 진행 표시(이전 결과는 비운 상태),
-/// 다 받았는데 없으면 안내 문구. 장소를 누르면 지도에서 그 장소를 연다.
+/// 실시간 검색 미리보기. 받는 중에는 이전 결과를 그대로 보여 주고(로딩 표시 없음),
+/// 지금 입력의 결과가 비었을 때만 안내 문구. 장소를 누르면 지도에서 그 장소를 연다.
 class _SuggestionList extends StatelessWidget {
   const _SuggestionList({
     required this.query,
     required this.places,
-    required this.isLoading,
+    required this.isEmptyResult,
     required this.center,
     required this.onPick,
   });
 
   final String query;
   final List<Place> places;
-  final bool isLoading;
+  final bool isEmptyResult;
   final GeoPoint? center;
   final ValueChanged<Place> onPick;
 
   @override
   Widget build(BuildContext context) {
     final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
-    if (isLoading) return const LinearProgressIndicator(minHeight: 2);
-    if (places.isEmpty) {
+    if (isEmptyResult) {
       return Padding(
         padding: const EdgeInsets.only(top: 40),
         child: Text(

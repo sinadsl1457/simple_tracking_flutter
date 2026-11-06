@@ -48,7 +48,7 @@ final class PlaceSearchNotifierProvider
 }
 
 String _$placeSearchNotifierHash() =>
-    r'0707e54e0b1ff33ef110d79f702863aa29613b9b';
+    r'5c4c9a9257811c106ee1ab5824559995f7c5df10';
 
 /// 키워드·카테고리 검색과 결과 선택. 네이티브 PlaceSearchViewModel을 옮겼다.
 /// 지도 화면이 보는 동안만 산다(autoDispose).

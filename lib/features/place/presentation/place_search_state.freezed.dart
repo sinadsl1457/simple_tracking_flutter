@@ -580,9 +580,10 @@ mixin _$PlaceSearchState {
 /// 검색창에 입력 중인 글자.
  String get query; bool get isSearchPageOpen;/// 검색 페이지에서 키워드 검색이 진행 중인지. 성공하면 페이지가 닫힌다.
  bool get isSubmitting;/// null이면 결과 없음(시트 숨김).
- SearchSource? get source; SearchPhase? get phase; Place? get selectedPlace; List<String> get recentQueries;/// 실시간 검색: 미리보기가 어떤 검색어의 결과인지(공백 정리한 값). 비어 있으면 미리보기 없음 → 최근 검색어.
- String get suggestFor;/// [suggestFor]로 찾은 장소. 검색 페이지에서 입력하는 동안 보여 준다.
- List<Place> get suggestions;/// 미리보기 요청이 대기 중이거나 진행 중인지.
+ SearchSource? get source; SearchPhase? get phase; Place? get selectedPlace; List<String> get recentQueries;/// 실시간 검색: 지금 입력(공백 정리한 값). 비어 있으면 미리보기 없음 → 최근 검색어.
+ String get suggestFor;/// 화면에 보이는 미리보기 장소. 새 입력의 결과가 올 때까지 이전 결과를 그대로 둔다(깜빡임 방지).
+ List<Place> get suggestions;/// [suggestions]가 어떤 검색어의 결과인지. 입력 중에는 [suggestFor]와 다를 수 있다.
+ String get suggestionsQuery;/// 미리보기 요청이 대기 중이거나 진행 중인지.
  bool get isSuggesting;
 /// Create a copy of PlaceSearchState
 /// with the given fields replaced by the non-null parameter values.
@@ -595,20 +596,20 @@ $PlaceSearchStateCopyWith<PlaceSearchState> get copyWith => _$PlaceSearchStateCo
 @override
 bool operator ==(Object other) {
   final _this = this as PlaceSearchState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlaceSearchState&&(identical(other.query, _this.query) || other.query == _this.query)&&(identical(other.isSearchPageOpen, _this.isSearchPageOpen) || other.isSearchPageOpen == _this.isSearchPageOpen)&&(identical(other.isSubmitting, _this.isSubmitting) || other.isSubmitting == _this.isSubmitting)&&(identical(other.source, _this.source) || other.source == _this.source)&&(identical(other.phase, _this.phase) || other.phase == _this.phase)&&(identical(other.selectedPlace, _this.selectedPlace) || other.selectedPlace == _this.selectedPlace)&&const DeepCollectionEquality().equals(other.recentQueries, _this.recentQueries)&&(identical(other.suggestFor, _this.suggestFor) || other.suggestFor == _this.suggestFor)&&const DeepCollectionEquality().equals(other.suggestions, _this.suggestions)&&(identical(other.isSuggesting, _this.isSuggesting) || other.isSuggesting == _this.isSuggesting));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlaceSearchState&&(identical(other.query, _this.query) || other.query == _this.query)&&(identical(other.isSearchPageOpen, _this.isSearchPageOpen) || other.isSearchPageOpen == _this.isSearchPageOpen)&&(identical(other.isSubmitting, _this.isSubmitting) || other.isSubmitting == _this.isSubmitting)&&(identical(other.source, _this.source) || other.source == _this.source)&&(identical(other.phase, _this.phase) || other.phase == _this.phase)&&(identical(other.selectedPlace, _this.selectedPlace) || other.selectedPlace == _this.selectedPlace)&&const DeepCollectionEquality().equals(other.recentQueries, _this.recentQueries)&&(identical(other.suggestFor, _this.suggestFor) || other.suggestFor == _this.suggestFor)&&const DeepCollectionEquality().equals(other.suggestions, _this.suggestions)&&(identical(other.suggestionsQuery, _this.suggestionsQuery) || other.suggestionsQuery == _this.suggestionsQuery)&&(identical(other.isSuggesting, _this.isSuggesting) || other.isSuggesting == _this.isSuggesting));
 }
 
 
 @override
 int get hashCode {
   final _this = this as PlaceSearchState;
-  return Object.hash(runtimeType,_this.query,_this.isSearchPageOpen,_this.isSubmitting,_this.source,_this.phase,_this.selectedPlace,const DeepCollectionEquality().hash(_this.recentQueries),_this.suggestFor,const DeepCollectionEquality().hash(_this.suggestions),_this.isSuggesting);
+  return Object.hash(runtimeType,_this.query,_this.isSearchPageOpen,_this.isSubmitting,_this.source,_this.phase,_this.selectedPlace,const DeepCollectionEquality().hash(_this.recentQueries),_this.suggestFor,const DeepCollectionEquality().hash(_this.suggestions),_this.suggestionsQuery,_this.isSuggesting);
 }
 
 @override
 String toString() {
   final _this = this as PlaceSearchState;
-  return 'PlaceSearchState(query: ${_this.query}, isSearchPageOpen: ${_this.isSearchPageOpen}, isSubmitting: ${_this.isSubmitting}, source: ${_this.source}, phase: ${_this.phase}, selectedPlace: ${_this.selectedPlace}, recentQueries: ${_this.recentQueries}, suggestFor: ${_this.suggestFor}, suggestions: ${_this.suggestions}, isSuggesting: ${_this.isSuggesting})';
+  return 'PlaceSearchState(query: ${_this.query}, isSearchPageOpen: ${_this.isSearchPageOpen}, isSubmitting: ${_this.isSubmitting}, source: ${_this.source}, phase: ${_this.phase}, selectedPlace: ${_this.selectedPlace}, recentQueries: ${_this.recentQueries}, suggestFor: ${_this.suggestFor}, suggestions: ${_this.suggestions}, suggestionsQuery: ${_this.suggestionsQuery}, isSuggesting: ${_this.isSuggesting})';
 }
 
 
@@ -619,7 +620,7 @@ abstract mixin class $PlaceSearchStateCopyWith<$Res>  {
   factory $PlaceSearchStateCopyWith(PlaceSearchState value, $Res Function(PlaceSearchState) _then) = _$PlaceSearchStateCopyWithImpl;
 @useResult
 $Res call({
- String query, bool isSearchPageOpen, bool isSubmitting, SearchSource? source, SearchPhase? phase, Place? selectedPlace, List<String> recentQueries, String suggestFor, List<Place> suggestions, bool isSuggesting
+ String query, bool isSearchPageOpen, bool isSubmitting, SearchSource? source, SearchPhase? phase, Place? selectedPlace, List<String> recentQueries, String suggestFor, List<Place> suggestions, String suggestionsQuery, bool isSuggesting
 });
 
 
@@ -636,7 +637,7 @@ class _$PlaceSearchStateCopyWithImpl<$Res>
 
 /// Create a copy of PlaceSearchState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? query = null,Object? isSearchPageOpen = null,Object? isSubmitting = null,Object? source = freezed,Object? phase = freezed,Object? selectedPlace = freezed,Object? recentQueries = null,Object? suggestFor = null,Object? suggestions = null,Object? isSuggesting = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? query = null,Object? isSearchPageOpen = null,Object? isSubmitting = null,Object? source = freezed,Object? phase = freezed,Object? selectedPlace = freezed,Object? recentQueries = null,Object? suggestFor = null,Object? suggestions = null,Object? suggestionsQuery = null,Object? isSuggesting = null,}) {
   return _then(PlaceSearchState(
 query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,isSearchPageOpen: null == isSearchPageOpen ? _self.isSearchPageOpen : isSearchPageOpen // ignore: cast_nullable_to_non_nullable
@@ -647,7 +648,8 @@ as SearchPhase?,selectedPlace: freezed == selectedPlace ? _self.selectedPlace : 
 as Place?,recentQueries: null == recentQueries ? _self.recentQueries : recentQueries // ignore: cast_nullable_to_non_nullable
 as List<String>,suggestFor: null == suggestFor ? _self.suggestFor : suggestFor // ignore: cast_nullable_to_non_nullable
 as String,suggestions: null == suggestions ? _self.suggestions : suggestions // ignore: cast_nullable_to_non_nullable
-as List<Place>,isSuggesting: null == isSuggesting ? _self.isSuggesting : isSuggesting // ignore: cast_nullable_to_non_nullable
+as List<Place>,suggestionsQuery: null == suggestionsQuery ? _self.suggestionsQuery : suggestionsQuery // ignore: cast_nullable_to_non_nullable
+as String,isSuggesting: null == isSuggesting ? _self.isSuggesting : isSuggesting // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -769,10 +771,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String query,  bool isSearchPageOpen,  bool isSubmitting,  SearchSource? source,  SearchPhase? phase,  Place? selectedPlace,  List<String> recentQueries,  String suggestFor,  List<Place> suggestions,  bool isSuggesting)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String query,  bool isSearchPageOpen,  bool isSubmitting,  SearchSource? source,  SearchPhase? phase,  Place? selectedPlace,  List<String> recentQueries,  String suggestFor,  List<Place> suggestions,  String suggestionsQuery,  bool isSuggesting)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlaceSearchState() when $default != null:
-return $default(_that.query,_that.isSearchPageOpen,_that.isSubmitting,_that.source,_that.phase,_that.selectedPlace,_that.recentQueries,_that.suggestFor,_that.suggestions,_that.isSuggesting);case _:
+return $default(_that.query,_that.isSearchPageOpen,_that.isSubmitting,_that.source,_that.phase,_that.selectedPlace,_that.recentQueries,_that.suggestFor,_that.suggestions,_that.suggestionsQuery,_that.isSuggesting);case _:
   return orElse();
 
 }
@@ -790,10 +792,10 @@ return $default(_that.query,_that.isSearchPageOpen,_that.isSubmitting,_that.sour
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String query,  bool isSearchPageOpen,  bool isSubmitting,  SearchSource? source,  SearchPhase? phase,  Place? selectedPlace,  List<String> recentQueries,  String suggestFor,  List<Place> suggestions,  bool isSuggesting)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String query,  bool isSearchPageOpen,  bool isSubmitting,  SearchSource? source,  SearchPhase? phase,  Place? selectedPlace,  List<String> recentQueries,  String suggestFor,  List<Place> suggestions,  String suggestionsQuery,  bool isSuggesting)  $default,) {final _that = this;
 switch (_that) {
 case _PlaceSearchState():
-return $default(_that.query,_that.isSearchPageOpen,_that.isSubmitting,_that.source,_that.phase,_that.selectedPlace,_that.recentQueries,_that.suggestFor,_that.suggestions,_that.isSuggesting);case _:
+return $default(_that.query,_that.isSearchPageOpen,_that.isSubmitting,_that.source,_that.phase,_that.selectedPlace,_that.recentQueries,_that.suggestFor,_that.suggestions,_that.suggestionsQuery,_that.isSuggesting);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -810,10 +812,10 @@ return $default(_that.query,_that.isSearchPageOpen,_that.isSubmitting,_that.sour
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String query,  bool isSearchPageOpen,  bool isSubmitting,  SearchSource? source,  SearchPhase? phase,  Place? selectedPlace,  List<String> recentQueries,  String suggestFor,  List<Place> suggestions,  bool isSuggesting)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String query,  bool isSearchPageOpen,  bool isSubmitting,  SearchSource? source,  SearchPhase? phase,  Place? selectedPlace,  List<String> recentQueries,  String suggestFor,  List<Place> suggestions,  String suggestionsQuery,  bool isSuggesting)?  $default,) {final _that = this;
 switch (_that) {
 case _PlaceSearchState() when $default != null:
-return $default(_that.query,_that.isSearchPageOpen,_that.isSubmitting,_that.source,_that.phase,_that.selectedPlace,_that.recentQueries,_that.suggestFor,_that.suggestions,_that.isSuggesting);case _:
+return $default(_that.query,_that.isSearchPageOpen,_that.isSubmitting,_that.source,_that.phase,_that.selectedPlace,_that.recentQueries,_that.suggestFor,_that.suggestions,_that.suggestionsQuery,_that.isSuggesting);case _:
   return null;
 
 }
@@ -825,7 +827,7 @@ return $default(_that.query,_that.isSearchPageOpen,_that.isSubmitting,_that.sour
 
 
 class _PlaceSearchState extends PlaceSearchState {
-  const _PlaceSearchState({this.query = '', this.isSearchPageOpen = false, this.isSubmitting = false, this.source, this.phase, this.selectedPlace,  List<String> recentQueries = const [], this.suggestFor = '',  List<Place> suggestions = const [], this.isSuggesting = false}): _recentQueries = recentQueries,_suggestions = suggestions,super._();
+  const _PlaceSearchState({this.query = '', this.isSearchPageOpen = false, this.isSubmitting = false, this.source, this.phase, this.selectedPlace,  List<String> recentQueries = const [], this.suggestFor = '',  List<Place> suggestions = const [], this.suggestionsQuery = '', this.isSuggesting = false}): _recentQueries = recentQueries,_suggestions = suggestions,super._();
   
 
 /// 검색창에 입력 중인 글자.
@@ -844,17 +846,19 @@ class _PlaceSearchState extends PlaceSearchState {
   return EqualUnmodifiableListView(_recentQueries);
 }
 
-/// 실시간 검색: 미리보기가 어떤 검색어의 결과인지(공백 정리한 값). 비어 있으면 미리보기 없음 → 최근 검색어.
+/// 실시간 검색: 지금 입력(공백 정리한 값). 비어 있으면 미리보기 없음 → 최근 검색어.
 @override@JsonKey() final  String suggestFor;
-/// [suggestFor]로 찾은 장소. 검색 페이지에서 입력하는 동안 보여 준다.
+/// 화면에 보이는 미리보기 장소. 새 입력의 결과가 올 때까지 이전 결과를 그대로 둔다(깜빡임 방지).
  final  List<Place> _suggestions;
-/// [suggestFor]로 찾은 장소. 검색 페이지에서 입력하는 동안 보여 준다.
+/// 화면에 보이는 미리보기 장소. 새 입력의 결과가 올 때까지 이전 결과를 그대로 둔다(깜빡임 방지).
 @override@JsonKey() List<Place> get suggestions {
   if (_suggestions is EqualUnmodifiableListView) return _suggestions;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_suggestions);
 }
 
+/// [suggestions]가 어떤 검색어의 결과인지. 입력 중에는 [suggestFor]와 다를 수 있다.
+@override@JsonKey() final  String suggestionsQuery;
 /// 미리보기 요청이 대기 중이거나 진행 중인지.
 @override@JsonKey() final  bool isSuggesting;
 
@@ -868,18 +872,18 @@ _$PlaceSearchStateCopyWith<_PlaceSearchState> get copyWith => __$PlaceSearchStat
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlaceSearchState&&(identical(other.query, query) || other.query == query)&&(identical(other.isSearchPageOpen, isSearchPageOpen) || other.isSearchPageOpen == isSearchPageOpen)&&(identical(other.isSubmitting, isSubmitting) || other.isSubmitting == isSubmitting)&&(identical(other.source, source) || other.source == source)&&(identical(other.phase, phase) || other.phase == phase)&&(identical(other.selectedPlace, selectedPlace) || other.selectedPlace == selectedPlace)&&const DeepCollectionEquality().equals(other.recentQueries, _recentQueries)&&(identical(other.suggestFor, suggestFor) || other.suggestFor == suggestFor)&&const DeepCollectionEquality().equals(other.suggestions, _suggestions)&&(identical(other.isSuggesting, isSuggesting) || other.isSuggesting == isSuggesting));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlaceSearchState&&(identical(other.query, query) || other.query == query)&&(identical(other.isSearchPageOpen, isSearchPageOpen) || other.isSearchPageOpen == isSearchPageOpen)&&(identical(other.isSubmitting, isSubmitting) || other.isSubmitting == isSubmitting)&&(identical(other.source, source) || other.source == source)&&(identical(other.phase, phase) || other.phase == phase)&&(identical(other.selectedPlace, selectedPlace) || other.selectedPlace == selectedPlace)&&const DeepCollectionEquality().equals(other.recentQueries, _recentQueries)&&(identical(other.suggestFor, suggestFor) || other.suggestFor == suggestFor)&&const DeepCollectionEquality().equals(other.suggestions, _suggestions)&&(identical(other.suggestionsQuery, suggestionsQuery) || other.suggestionsQuery == suggestionsQuery)&&(identical(other.isSuggesting, isSuggesting) || other.isSuggesting == isSuggesting));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,query,isSearchPageOpen,isSubmitting,source,phase,selectedPlace,const DeepCollectionEquality().hash(_recentQueries),suggestFor,const DeepCollectionEquality().hash(_suggestions),isSuggesting);
+    return Object.hash(runtimeType,query,isSearchPageOpen,isSubmitting,source,phase,selectedPlace,const DeepCollectionEquality().hash(_recentQueries),suggestFor,const DeepCollectionEquality().hash(_suggestions),suggestionsQuery,isSuggesting);
 }
 
 @override
 String toString() {
-    return 'PlaceSearchState(query: $query, isSearchPageOpen: $isSearchPageOpen, isSubmitting: $isSubmitting, source: $source, phase: $phase, selectedPlace: $selectedPlace, recentQueries: $recentQueries, suggestFor: $suggestFor, suggestions: $suggestions, isSuggesting: $isSuggesting)';
+    return 'PlaceSearchState(query: $query, isSearchPageOpen: $isSearchPageOpen, isSubmitting: $isSubmitting, source: $source, phase: $phase, selectedPlace: $selectedPlace, recentQueries: $recentQueries, suggestFor: $suggestFor, suggestions: $suggestions, suggestionsQuery: $suggestionsQuery, isSuggesting: $isSuggesting)';
 }
 
 
@@ -890,7 +894,7 @@ abstract mixin class _$PlaceSearchStateCopyWith<$Res> implements $PlaceSearchSta
   factory _$PlaceSearchStateCopyWith(_PlaceSearchState value, $Res Function(_PlaceSearchState) _then) = __$PlaceSearchStateCopyWithImpl;
 @override @useResult
 $Res call({
- String query, bool isSearchPageOpen, bool isSubmitting, SearchSource? source, SearchPhase? phase, Place? selectedPlace, List<String> recentQueries, String suggestFor, List<Place> suggestions, bool isSuggesting
+ String query, bool isSearchPageOpen, bool isSubmitting, SearchSource? source, SearchPhase? phase, Place? selectedPlace, List<String> recentQueries, String suggestFor, List<Place> suggestions, String suggestionsQuery, bool isSuggesting
 });
 
 
@@ -907,7 +911,7 @@ class __$PlaceSearchStateCopyWithImpl<$Res>
 
 /// Create a copy of PlaceSearchState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? query = null,Object? isSearchPageOpen = null,Object? isSubmitting = null,Object? source = freezed,Object? phase = freezed,Object? selectedPlace = freezed,Object? recentQueries = null,Object? suggestFor = null,Object? suggestions = null,Object? isSuggesting = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? query = null,Object? isSearchPageOpen = null,Object? isSubmitting = null,Object? source = freezed,Object? phase = freezed,Object? selectedPlace = freezed,Object? recentQueries = null,Object? suggestFor = null,Object? suggestions = null,Object? suggestionsQuery = null,Object? isSuggesting = null,}) {
   return _then(_PlaceSearchState(
 query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,isSearchPageOpen: null == isSearchPageOpen ? _self.isSearchPageOpen : isSearchPageOpen // ignore: cast_nullable_to_non_nullable
@@ -918,7 +922,8 @@ as SearchPhase?,selectedPlace: freezed == selectedPlace ? _self.selectedPlace : 
 as Place?,recentQueries: null == recentQueries ? _self._recentQueries : recentQueries // ignore: cast_nullable_to_non_nullable
 as List<String>,suggestFor: null == suggestFor ? _self.suggestFor : suggestFor // ignore: cast_nullable_to_non_nullable
 as String,suggestions: null == suggestions ? _self._suggestions : suggestions // ignore: cast_nullable_to_non_nullable
-as List<Place>,isSuggesting: null == isSuggesting ? _self.isSuggesting : isSuggesting // ignore: cast_nullable_to_non_nullable
+as List<Place>,suggestionsQuery: null == suggestionsQuery ? _self.suggestionsQuery : suggestionsQuery // ignore: cast_nullable_to_non_nullable
+as String,isSuggesting: null == isSuggesting ? _self.isSuggesting : isSuggesting // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
