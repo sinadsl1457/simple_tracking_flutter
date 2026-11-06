@@ -1,6 +1,7 @@
 // [route/presentation] 길찾기 경로 목록 화면(전체 화면, 지도 없음). 라우트: /route
 // 여는 곳: MapScreen(준비 화면에서 두 지점을 정한 뒤, 장소 상세 "길찾기", 지도에서 경로를 보다가 ‹).
-// 경로를 누르면 RouteNotifier.showRoute 후 닫혀 지도에 그 경로가 보인다. ✕·뒤로 가기는 길찾기 종료.
+// 대중교통 경로를 누르거나 자동차·도보 탭을 고르면(경로가 하나라 고를 게 없다) 닫혀 지도에 그 경로가 보인다.
+// ✕·뒤로 가기는 길찾기 종료.
 // 상태는 지도 화면과 같은 RouteNotifier(지도 화면이 아래에 살아 있어 유지된다).
 
 import 'dart:async';
@@ -15,7 +16,6 @@ import 'package:simple_tracking/features/route/presentation/endpoint_picker_page
 import 'package:simple_tracking/features/route/presentation/route_notifier.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/route_endpoint_display.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/route_header.dart';
-import 'package:simple_tracking/features/route/presentation/widgets/route_summary_card.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/transit_route_list.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/travel_mode_tabs.dart';
 
@@ -29,7 +29,7 @@ class RouteListArgs {
 /// 경로를 골랐는지 알리는 pop 결과. 고르지 않고 닫히면(✕, 뒤로 가기) 길찾기를 끝낸다.
 const _chose = true;
 
-/// 네이버 지도의 경로 목록처럼 지도 없이 목록만 보인다. 경로를 골라야 지도에 그린다.
+/// 네이버 지도의 대중교통 경로 목록처럼 지도 없이 목록만 보인다. 경로를 골라야 지도에 그린다.
 class RouteListPage extends ConsumerWidget {
   const RouteListPage({required this.args, super.key});
 
@@ -57,10 +57,10 @@ class RouteListPage extends ConsumerWidget {
           : notifier.changeDestination(endpoint, myLocation: myLocation));
     }
 
-    void show(int index) {
-      notifier.showRoute(index: index);
-      context.pop(_chose);
-    }
+    // 지도에 경로를 보이게 되면(경로 탭, 자동차·도보 탭) 목록을 닫는다.
+    ref.listen(routeProvider.select((s) => s.isShowingRoute), (_, showing) {
+      if (showing) context.pop(_chose);
+    });
 
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
@@ -96,17 +96,11 @@ class RouteListPage extends ConsumerWidget {
               Expanded(
                 child: CustomScrollView(
                   slivers: [
+                    // 자동차·도보 탭이면 곧 닫히므로(지도로) 대중교통 목록만 그린다.
                     if (route.selectedMode == TravelMode.transit)
                       ...transitRouteSlivers(
                         result: route.selectedResult,
-                        onSelect: show,
-                      )
-                    else
-                      SliverToBoxAdapter(
-                        child: _PathRouteItem(
-                          result: route.selectedResult,
-                          onTap: () => show(0),
-                        ),
+                        onSelect: (index) => notifier.showRoute(index: index),
                       ),
                     SliverPadding(
                       padding: EdgeInsets.only(
@@ -122,31 +116,4 @@ class RouteListPage extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// 자동차·도보 목록의 한 줄(경로가 하나뿐). 결과가 오면 누를 수 있다.
-class _PathRouteItem extends StatelessWidget {
-  const _PathRouteItem({required this.result, required this.onTap});
-
-  final ModeResult? result;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => switch (result) {
-    ModePath(:final route) => InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: PathRouteSummary(route: route),
-      ),
-    ),
-    ModeFailed(:final failure) => Padding(
-      padding: const EdgeInsets.all(24),
-      child: Center(child: RouteFailureText(failure: failure)),
-    ),
-    _ => const Padding(
-      padding: EdgeInsets.all(24),
-      child: Center(child: CircularProgressIndicator()),
-    ),
-  };
 }

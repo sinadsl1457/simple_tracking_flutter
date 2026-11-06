@@ -82,6 +82,8 @@ _DirectionsButton → RoutePlannerPage(push)
 → 목록에서 경로 탭 → showRoute(index) → 목록 pop → state.overlay 변경 → MapScreen의 ref.listen이 지도에 showRoute
    + effect fitCamera → 아래 경로 카드가 그려진 뒤 실제 높이로 카메라를 맞춤
 → 지도의 ‹(또는 뒤로 가기) → backToList() → 선을 지우고 목록 push / 목록의 ✕ → closeRoute() → 카메라 복원
+※ 자동차·도보는 카카오가 경로를 하나만 줘서(도보 API는 대안 없음) 고르는 단계 없이 그 탭을 고르면 바로 지도에 그린다.
+   지도 위에는 출발·도착 카드 + 이동 수단 탭. 대중교통 탭을 누르면 목록으로.
 ```
 
 ### 4-3. Notifier → 지도 반영 (MapScreen)

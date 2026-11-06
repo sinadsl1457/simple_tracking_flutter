@@ -449,7 +449,8 @@ mixin _$RouteState {
 
  RouteEndpoint? get origin; RouteEndpoint? get destination;/// 조회에 쓴 실제 좌표. 내 위치는 조회를 시작한 순간의 좌표다.
  GeoPoint? get originPoint; GeoPoint? get destinationPoint;/// 마지막으로 고른 이동 수단을 다음 길찾기에서도 유지한다.
- TravelMode get selectedMode; Map<TravelMode, ModeResult> get results; int get selectedTransitIndex;/// 목록에서 경로를 골라 지도에 그 경로를 보여 주는 중. false면 경로 목록 단계(지도에 선 없음).
+ TravelMode get selectedMode; Map<TravelMode, ModeResult> get results; int get selectedTransitIndex;/// 지도에 경로를 보여 주는 중. false면 대중교통 경로 목록 단계(지도에 선 없음).
+/// 자동차·도보는 고를 후보가 없어 그 탭이면 항상 true.
  bool get isShowingRoute;
 /// Create a copy of RouteState
 /// with the given fields replaced by the non-null parameter values.
@@ -720,7 +721,8 @@ class _RouteState extends RouteState {
 }
 
 @override@JsonKey() final  int selectedTransitIndex;
-/// 목록에서 경로를 골라 지도에 그 경로를 보여 주는 중. false면 경로 목록 단계(지도에 선 없음).
+/// 지도에 경로를 보여 주는 중. false면 대중교통 경로 목록 단계(지도에 선 없음).
+/// 자동차·도보는 고를 후보가 없어 그 탭이면 항상 true.
 @override@JsonKey() final  bool isShowingRoute;
 
 /// Create a copy of RouteState

@@ -75,7 +75,26 @@ class RouteSummaryCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
               child: PathRouteSummary(route: route),
             ),
-            _ => const SizedBox(height: 12),
+            ModeFailed(:final failure) => Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: RouteFailureText(failure: failure),
+            ),
+            _ => Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Row(
+                children: [
+                  const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    '경로를 찾고 있어요',
+                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
           },
         ],
       ),

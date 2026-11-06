@@ -11,8 +11,10 @@ import 'package:simple_tracking/core/error/result.dart';
 import 'package:simple_tracking/features/route/data/route_providers.dart';
 import 'package:simple_tracking/features/route/domain/find_route_use_cases.dart';
 import 'package:simple_tracking/features/route/domain/route_path.dart';
+import 'package:simple_tracking/features/route/domain/travel_mode.dart';
 import 'package:simple_tracking/features/route/presentation/route_list_page.dart';
 import 'package:simple_tracking/features/route/presentation/route_notifier.dart';
+import 'package:simple_tracking/features/route/presentation/widgets/route_display.dart';
 
 import '../../../fakes/fake_repositories.dart';
 import '../../../fakes/fixtures.dart';
@@ -118,5 +120,17 @@ void main() {
 
     expect(find.text('지도'), findsOneWidget);
     expect(state().isActive, isFalse);
+  });
+
+  testWidgets('자동차 탭을 고르면 목록이 닫히고 바로 지도에 자동차 경로를 보인다', (tester) async {
+    await openList(tester);
+
+    await tester.tap(find.byIcon(TravelMode.car.icon));
+    await tester.pumpAndSettle();
+
+    expect(find.text('지도'), findsOneWidget);
+    expect(state().selectedMode, TravelMode.car);
+    expect(state().isShowingRoute, isTrue);
+    expect(state().isActive, isTrue);
   });
 }

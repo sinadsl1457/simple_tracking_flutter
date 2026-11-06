@@ -35,7 +35,8 @@ abstract class RouteState with _$RouteState {
     @Default({}) Map<TravelMode, ModeResult> results,
     @Default(0) int selectedTransitIndex,
 
-    /// 목록에서 경로를 골라 지도에 그 경로를 보여 주는 중. false면 경로 목록 단계(지도에 선 없음).
+    /// 지도에 경로를 보여 주는 중. false면 대중교통 경로 목록 단계(지도에 선 없음).
+    /// 자동차·도보는 고를 후보가 없어 그 탭이면 항상 true.
     @Default(false) bool isShowingRoute,
   }) = _RouteState;
 

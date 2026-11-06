@@ -47,7 +47,7 @@ final class RouteNotifierProvider
   }
 }
 
-String _$routeNotifierHash() => r'ad7490e442de82d92a5756ebd1c90233dc56cefa';
+String _$routeNotifierHash() => r'3a8da110afcd3ebe3dffdee237b7ab1c4df0014d';
 
 /// 길찾기 모드. 시작하면 세 이동 수단을 동시에 조회해 탭마다 소요 시간을 보여준다(네이버 지도 방식).
 /// 네이티브 RouteViewModel을 옮겼다. 지도 화면이 보는 동안만 산다(autoDispose).

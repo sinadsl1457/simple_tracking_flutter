@@ -1,7 +1,8 @@
 // [route/presentation] 길찾기 결과 로직(Riverpod Notifier). 화면: route_list_page(목록) · MapScreen(고른 경로).
 // 출발지·도착지(RouteEndpoint) → 좌표 결정 → 세 이동 수단 동시 조회 → 목록 → 고른 경로만 지도 선(overlay).
 // 진입: start(장소 상세 "길찾기") · plan(길찾기 준비 화면) / 변경: changeOrigin·changeDestination·swap
-// 목록 ↔ 지도: showRoute(목록에서 경로 탭) · backToList(지도의 ‹)
+// 대중교통은 후보가 여럿이라 목록에서 고른 뒤 지도에 그린다(showRoute / backToList).
+// 자동차·도보는 경로가 하나라 그 탭을 고르면 바로 지도에 그린다(selectMode).
 // 테스트: test/features/route/presentation/route_notifier_test.dart
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -121,14 +122,14 @@ class RouteNotifier extends _$RouteNotifier {
     }
 
     final generation = ++_generation;
-    // 새로 찾으면 목록 단계부터. 경로는 목록에서 고른 뒤에 지도에 그린다.
+    // 새로 찾으면 대중교통은 목록 단계부터, 자동차·도보는 바로 지도에 그린다(결과가 오면 카메라를 맞춘다).
     state = state.copyWith(
       origin: origin,
       destination: destination,
       originPoint: from,
       destinationPoint: to,
       selectedTransitIndex: 0,
-      isShowingRoute: false,
+      isShowingRoute: _drawsDirectly(state.selectedMode),
       results: {
         for (final mode in TravelMode.values) mode: const ModeResult.loading(),
       },
@@ -141,6 +142,9 @@ class RouteNotifier extends _$RouteNotifier {
         _fetch(mode, from, to).then((result) {
           if (generation != _generation) return;
           state = state.copyWith(results: {...state.results, mode: result});
+          if (mode == state.selectedMode && state.isShowingRoute) {
+            _fitSelected();
+          }
         }),
     ]);
   }
@@ -151,11 +155,20 @@ class RouteNotifier extends _$RouteNotifier {
         PlaceEndpoint(:final place) => place.location,
       };
 
-  /// 호출: 목록 화면의 이동 수단 탭. 그 수단의 목록을 보인다(다시 조회하지 않는다).
+  /// 호출: 이동 수단 탭(목록 화면, 지도 위 탭). 다시 조회하지 않는다.
+  /// 대중교통은 목록 단계로, 자동차·도보는 경로가 하나라 바로 지도에 그리고 카메라를 맞춘다.
   void selectMode(TravelMode mode) {
     if (mode == state.selectedMode) return;
-    state = state.copyWith(selectedMode: mode, selectedTransitIndex: 0);
+    state = state.copyWith(
+      selectedMode: mode,
+      selectedTransitIndex: 0,
+      isShowingRoute: _drawsDirectly(mode),
+    );
+    _fitSelected();
   }
+
+  /// 고를 후보 없이 바로 지도에 그리는 수단(카카오 도보 API는 경로 하나만 준다).
+  static bool _drawsDirectly(TravelMode mode) => mode != TravelMode.transit;
 
   /// 호출: 목록에서 경로 탭. 지금 탭([RouteState.selectedMode])의 [index]번째 경로를 지도에 그리고
   /// 카메라를 맞춘다(effect fitCamera). 자동차·도보는 경로가 하나라 [index]는 0.
@@ -164,8 +177,11 @@ class RouteNotifier extends _$RouteNotifier {
     _fitSelected();
   }
 
-  /// 호출: 지도에서 경로를 보던 중 ‹(뒤로). 지도 선을 지우고 목록 단계로 돌아간다.
-  void backToList() => state = state.copyWith(isShowingRoute: false);
+  /// 호출: 대중교통 경로를 보던 중 ‹(뒤로). 지도 선을 지우고 목록 단계로 돌아간다.
+  void backToList() => state = state.copyWith(
+    selectedMode: TravelMode.transit,
+    isShowingRoute: false,
+  );
 
   /// 호출: 길찾기 카드의 ✕. 결과를 지우고 검색 화면으로 돌아간다.
   void closeRoute() {

@@ -175,18 +175,15 @@ void main() {
     expect(overlay.end, Fixtures.gangnamStation.toLatLng());
   });
 
-  test('도보 탭에서 경로를 고르면 도보 선을 그리고 카메라를 맞춘다', () async {
+  test('도보 탭을 고르면 고를 것 없이 바로 도보 선을 그리고 카메라를 맞춘다', () async {
     final notifier = makeNotifier(defaultRepository());
     await notifier.start(destination, myLocation: Fixtures.cityHall);
     await flush();
 
     notifier.selectMode(TravelMode.walk);
     await flush();
-    expect(effects, isEmpty); // 탭만 바꾸면 목록만 바뀐다
 
-    notifier.showRoute();
-    await flush();
-
+    expect(state().isShowingRoute, isTrue);
     expect(state().overlay!.lines, [
       RouteLine(
         kind: RouteLineKind.walk,
@@ -194,6 +191,32 @@ void main() {
       ),
     ]);
     expect(effects, [RouteEffect.fitCamera(state().overlay!.allPoints)]);
+  });
+
+  test('자동차로 찾으면 목록 없이 결과가 오는 대로 지도에 그린다', () async {
+    final notifier = makeNotifier(defaultRepository());
+
+    await notifier.plan(
+      origin: const RouteEndpoint.myLocation(),
+      destination: RouteEndpoint.place(destination),
+      mode: TravelMode.car,
+      myLocation: Fixtures.cityHall,
+    );
+    await flush();
+
+    expect(state().isShowingRoute, isTrue);
+    expect(effects, [RouteEffect.fitCamera(state().overlay!.allPoints)]);
+  });
+
+  test('도보를 보다가 대중교통 탭을 고르면 목록 단계로 돌아간다', () async {
+    final notifier = makeNotifier(defaultRepository());
+    await notifier.start(destination, myLocation: Fixtures.cityHall);
+    notifier
+      ..selectMode(TravelMode.walk)
+      ..selectMode(TravelMode.transit);
+
+    expect(state().isShowingRoute, isFalse);
+    expect(state().overlay, isNull);
   });
 
   test('한 수단이 실패해도 나머지는 유지한다', () async {
