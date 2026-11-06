@@ -1,6 +1,6 @@
 // [location/data] 실제 GPS 구현. geolocator가 iOS CLLocationManager · Android FusedLocationProvider를 부른다.
 // 네이티브 앱 LocationRepositoryImpl과 같은 규칙: 최고 정확도, 1초 간격, 느리면 방향 버림.
-// 선택: location_providers.dart (FIXED_LOCATION이 없을 때). 테스트: test/features/location/gps_location_repository_test.dart
+// 등록: location_providers.dart. 테스트: test/features/location/gps_location_repository_test.dart
 
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart' as geo;

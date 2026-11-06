@@ -8,14 +8,12 @@ part of 'location_providers.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// FIXED_LOCATION("위도,경도")이 있으면 GPS 대신 그 좌표를 내 위치로 쓴다(시뮬레이터·연습용).
-/// 없거나 형식이 틀리면 실제 GPS. 앱 수명 동안 하나(keepAlive).
+/// 실제 GPS. 시뮬레이터·에뮬레이터는 그 기기의 가상 위치를 쓴다. 앱 수명 동안 하나(keepAlive).
 
 @ProviderFor(locationRepository)
 final locationRepositoryProvider = LocationRepositoryProvider._();
 
-/// FIXED_LOCATION("위도,경도")이 있으면 GPS 대신 그 좌표를 내 위치로 쓴다(시뮬레이터·연습용).
-/// 없거나 형식이 틀리면 실제 GPS. 앱 수명 동안 하나(keepAlive).
+/// 실제 GPS. 시뮬레이터·에뮬레이터는 그 기기의 가상 위치를 쓴다. 앱 수명 동안 하나(keepAlive).
 
 final class LocationRepositoryProvider
     extends
@@ -25,8 +23,7 @@ final class LocationRepositoryProvider
           LocationRepository
         >
     with $Provider<LocationRepository> {
-  /// FIXED_LOCATION("위도,경도")이 있으면 GPS 대신 그 좌표를 내 위치로 쓴다(시뮬레이터·연습용).
-  /// 없거나 형식이 틀리면 실제 GPS. 앱 수명 동안 하나(keepAlive).
+  /// 실제 GPS. 시뮬레이터·에뮬레이터는 그 기기의 가상 위치를 쓴다. 앱 수명 동안 하나(keepAlive).
   LocationRepositoryProvider._()
     : super(
         from: null,
@@ -62,7 +59,7 @@ final class LocationRepositoryProvider
 }
 
 String _$locationRepositoryHash() =>
-    r'4e5a25f4a8d175d470c7e09af03467d3ececc2de';
+    r'2603b2f3bb9435c43c87649d57a9f3f9c8878634';
 
 @ProviderFor(observeLocationUseCase)
 final observeLocationUseCaseProvider = ObserveLocationUseCaseProvider._();

@@ -51,7 +51,7 @@
 
 | 키워드 | 뜻 | 주의 |
 |---|---|---|
-| `async*` / `yield` / `yield*` | Stream을 함수처럼 작성. `yield*`는 다른 스트림을 이어 붙임 | **끝나지 않는 await를 넣으면 `cancel()`도 끝나지 않는다** → 열린 스트림은 `StreamController` (`fixed_location_repository.dart`) |
+| `async*` / `yield` / `yield*` | Stream을 함수처럼 작성. `yield*`는 다른 스트림을 이어 붙임 | **끝나지 않는 await를 넣으면 `cancel()`도 끝나지 않는다** → 열린 스트림은 `StreamController`로 만든다 |
 | `unawaited(f)` | "일부러 기다리지 않음"을 표시. lint(`discarded_futures`)가 실수로 안 기다린 것과 구분 | 위젯 콜백에서 Cubit 호출 |
 | single-subscription `StreamController()` | 구독자 1명. **구독 전 이벤트를 버퍼에 보관** → Swift `AsyncStream`과 같은 성질 | `EffectEmitter` |
 | `Future.wait([...])` + `.then` | 여러 요청을 동시에 보내고, 각각 도착하는 대로 처리 | `RouteNotifier._search` |
