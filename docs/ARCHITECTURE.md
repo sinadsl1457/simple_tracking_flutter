@@ -21,7 +21,7 @@ lib/
 │  └ presentation/              EffectEmitter(일회성 이벤트), 하단 시트, 토스트, 포맷터
 └ features/                     기능별. 각 기능 안에 domain / data / presentation
    ├ location/   내 위치 (GPS: geolocator / FIXED_LOCATION이 있으면 고정 좌표)
-   ├ place/      장소 검색, 최근 검색어, 최근 장소
+   ├ place/      장소 검색(입력 중 실시간 미리보기), 최근 검색어, 최근 장소
    ├ route/      길찾기 (자동차·도보·대중교통), 길찾기 준비 화면, 출발지·도착지 선택
    ├ push/       푸시 알림(FCM). 앱 전체에 하나뿐인 PushCubit — 화면 없이 app.dart에 붙는다
    └ map/        지도 화면(MapScreen) — 위 세 기능을 조립하는 곳

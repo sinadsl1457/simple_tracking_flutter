@@ -20,10 +20,21 @@ import 'package:simple_tracking/features/route/domain/route_repository.dart';
 import 'package:simple_tracking/features/route/domain/transit_route.dart';
 
 class FakePlaceRepository implements PlaceRepository {
-  FakePlaceRepository({this.result = const [], this.failure});
+  FakePlaceRepository({
+    this.result = const [],
+    this.failure,
+    this.byQuery = const {},
+    this.delay = Duration.zero,
+  });
 
   final List<Place> result;
   final Failure? failure;
+
+  /// 검색어별로 다른 결과를 줄 때(늦게 온 응답 구분용). 없는 검색어는 [result].
+  final Map<String, List<Place>> byQuery;
+
+  /// 응답 지연(fakeAsync 안에서 늦게 도착하는 응답 흉내).
+  final Duration delay;
   final receivedQueries = <String>[];
   final receivedCategories =
       <({PlaceCategory category, GeoPoint center, int radius})>[];
@@ -34,6 +45,8 @@ class FakePlaceRepository implements PlaceRepository {
     GeoPoint? center,
   }) async {
     receivedQueries.add(query);
+    if (delay > Duration.zero) await Future<void>.delayed(delay);
+    if (byQuery[query] case final places?) return Result.ok(places);
     return _result;
   }
 

@@ -36,6 +36,15 @@ abstract class PlaceSearchState with _$PlaceSearchState {
     SearchPhase? phase,
     Place? selectedPlace,
     @Default([]) List<String> recentQueries,
+
+    /// 실시간 검색: 미리보기가 어떤 검색어의 결과인지(공백 정리한 값). 비어 있으면 미리보기 없음 → 최근 검색어.
+    @Default('') String suggestFor,
+
+    /// [suggestFor]로 찾은 장소. 검색 페이지에서 입력하는 동안 보여 준다.
+    @Default([]) List<Place> suggestions,
+
+    /// 미리보기 요청이 대기 중이거나 진행 중인지.
+    @Default(false) bool isSuggesting,
   }) = _PlaceSearchState;
 
   const PlaceSearchState._();

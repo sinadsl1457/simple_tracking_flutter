@@ -38,6 +38,13 @@ class PlaceSearchNotifier extends _$PlaceSearchNotifier {
   /// 늦게 도착한 이전 검색 결과가 최신 결과를 덮어쓰지 않게 한다.
   var _generation = 0;
 
+  /// 실시간 검색: 입력이 이만큼 멈추면 요청한다(글자마다 요청하지 않게).
+  static const suggestDelay = Duration(milliseconds: 300);
+  Timer? _suggestTimer;
+
+  /// 실시간 검색용 세대 번호. 새 입력·제출·정리 때 올려서 이전 미리보기 응답을 버린다.
+  var _suggestGeneration = 0;
+
   /// 화면이 구독하는 일회성 이벤트.
   Stream<PlaceSearchEffect> get effects => _effects.stream;
 
@@ -50,6 +57,8 @@ class PlaceSearchNotifier extends _$PlaceSearchNotifier {
     _effects = EffectChannel();
     ref.onDispose(() {
       _generation++; // 진행 중이던 검색의 응답을 버린다
+      _suggestTimer?.cancel();
+      _suggestGeneration++;
       _effects.close();
     });
     return const PlaceSearchState();
@@ -64,20 +73,66 @@ class PlaceSearchNotifier extends _$PlaceSearchNotifier {
   // ── 검색 페이지 ──
 
   /// 호출: 지도 검색창 탭. 지금 보고 있는 키워드로 입력칸을 채운 채 검색 페이지를 연다.
-  void openSearchPage() => state = state.copyWith(
-    query: state.keyword ?? '',
-    isSearchPageOpen: true,
-  );
+  /// 지난 미리보기는 지운다(입력을 시작하면 다시 찾는다).
+  void openSearchPage() {
+    _cancelSuggest();
+    state = state.copyWith(
+      query: state.keyword ?? '',
+      isSearchPageOpen: true,
+      suggestFor: '',
+      suggestions: const [],
+    );
+  }
 
-  /// 호출: 검색 페이지 뒤로 버튼.
-  void closeSearchPage() => state = state.copyWith(isSearchPageOpen: false);
+  /// 호출: 검색 페이지 뒤로 버튼. 대기 중인 미리보기 요청은 보내지 않는다.
+  void closeSearchPage() {
+    _cancelSuggest();
+    state = state.copyWith(isSearchPageOpen: false);
+  }
 
-  /// 호출: 검색 페이지 입력칸이 바뀔 때마다.
-  void onQueryChanged(String query) => state = state.copyWith(query: query);
+  /// 호출: 검색 페이지 입력칸이 바뀔 때마다(실시간 검색).
+  /// 입력이 [suggestDelay] 동안 멈추면 그 검색어로 미리보기를 찾는다. 연달아 입력하면 마지막 것만 요청한다.
+  /// 공백만 바뀌어 검색어가 같으면 다시 찾지 않는다. 입력을 다 지우면 미리보기를 비운다(최근 검색어로 돌아감).
+  void onQueryChanged(String query, {GeoPoint? center}) {
+    state = state.copyWith(query: query);
+    final normalized = normalizeQuery(query);
+    if (normalized == state.suggestFor) return;
+    _cancelSuggest();
+    state = state.copyWith(
+      suggestFor: normalized,
+      suggestions: const [],
+      isSuggesting: normalized.isNotEmpty,
+    );
+    if (normalized.isEmpty) return;
+    final generation = _suggestGeneration;
+    _suggestTimer = Timer(
+      suggestDelay,
+      () => unawaited(_suggest(normalized, center, generation)),
+    );
+  }
+
+  /// 호출: 검색 페이지 미리보기에서 장소 탭. 다시 요청하지 않고 미리보기 결과를 그대로 지도에 띄운 뒤
+  /// 그 장소를 고른다(카메라는 그 장소로). 검색어는 최근 검색어에 남긴다.
+  Future<void> pickSuggestion(Place place) async {
+    final keyword = state.suggestFor;
+    final places = state.suggestions;
+    _cancelSuggest();
+    _generation++; // 진행 중이던 제출 검색이 있으면 버린다
+    state = state.copyWith(
+      isSearchPageOpen: false,
+      isSubmitting: false,
+      source: SearchSource.keyword(keyword),
+      phase: SearchPhase.loaded(places),
+    );
+    select(place);
+    final recents = await _recentSearches.add(keyword);
+    if (ref.mounted) state = state.copyWith(recentQueries: recents);
+  }
 
   /// 키워드 검색. 성공하면 검색 페이지를 닫고 결과를 지도에 띄운다. 실패하면 페이지에 머문다.
   /// [center]는 거리 계산 기준(보통 내 위치).
   Future<void> submit({GeoPoint? center}) async {
+    _cancelSuggest(); // 전체 검색을 하므로 미리보기 요청은 필요 없다
     final generation = _beginSearch();
     state = state.copyWith(isSubmitting: true);
 
@@ -174,12 +229,35 @@ class PlaceSearchNotifier extends _$PlaceSearchNotifier {
   /// 호출: 검색창의 X. 결과·선택·입력을 모두 지운다(시트가 사라진다).
   void clearResults() {
     _generation++;
+    _cancelSuggest();
     state = state.copyWith(
       source: null,
       phase: null,
       selectedPlace: null,
       query: '',
     );
+  }
+
+  Future<void> _suggest(String query, GeoPoint? center, int generation) async {
+    final result = await _searchPlaces(query, center: center);
+    // 그사이 다른 입력·제출·정리(화면 닫힘 포함)가 있었으면 세대가 달라 버린다.
+    if (generation != _suggestGeneration) return;
+    state = state.copyWith(
+      isSuggesting: false,
+      // 미리보기 실패는 조용히 비운다(글자마다 오류 토스트를 띄우지 않는다). 엔터 검색은 오류를 보인다.
+      suggestions: switch (result) {
+        Ok(:final value) => value,
+        Err() => const [],
+      },
+    );
+  }
+
+  /// 대기 중인 미리보기 요청을 보내지 않고, 진행 중인 응답은 버린다.
+  void _cancelSuggest() {
+    _suggestTimer?.cancel();
+    _suggestTimer = null;
+    _suggestGeneration++;
+    if (state.isSuggesting) state = state.copyWith(isSuggesting: false);
   }
 
   int _beginSearch() {

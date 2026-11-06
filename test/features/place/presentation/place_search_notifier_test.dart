@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:simple_tracking/core/error/failure.dart';
@@ -268,6 +271,154 @@ void main() {
       expect(state().phase, isNull);
       expect(state().selectedPlace, isNull);
       expect(state().query, isEmpty);
+    });
+  });
+
+  group('실시간 검색', () {
+    const wait = PlaceSearchNotifier.suggestDelay;
+    final cafes = [Fixtures.place('c1'), Fixtures.place('c2')];
+
+    test('입력이 0.3초 멈추면 미리보기를 찾는다(그 전엔 요청 없음)', () {
+      fakeAsync((async) {
+        final repository = FakePlaceRepository(result: cafes);
+        final notifier = makeNotifier(repository)
+          ..openSearchPage()
+          ..onQueryChanged('카페');
+
+        async.elapse(wait - const Duration(milliseconds: 1));
+        expect(repository.receivedQueries, isEmpty);
+        expect(state().isSuggesting, isTrue);
+
+        async
+          ..elapse(const Duration(milliseconds: 1))
+          ..flushMicrotasks();
+        expect(repository.receivedQueries, ['카페']);
+        expect(state().suggestions, cafes);
+        expect(state().isSuggesting, isFalse);
+        expect(state().isSearchPageOpen, isTrue); // 미리보기는 페이지를 닫지 않는다
+        expect(effects, isEmpty); // 지도 카메라도 그대로
+        notifier.closeSearchPage();
+      });
+    });
+
+    test('연달아 입력하면 마지막 입력으로 한 번만 찾는다', () {
+      fakeAsync((async) {
+        final repository = FakePlaceRepository(result: cafes);
+        makeNotifier(repository)
+          ..onQueryChanged('ㅋ')
+          ..onQueryChanged('카')
+          ..onQueryChanged('카페');
+
+        async
+          ..elapse(wait)
+          ..flushMicrotasks();
+        expect(repository.receivedQueries, ['카페']);
+      });
+    });
+
+    test('늦게 도착한 이전 입력의 결과는 버린다', () {
+      fakeAsync((async) {
+        final old = [Fixtures.place('old')];
+        final repository = FakePlaceRepository(
+          byQuery: {'카': old, '카페': cafes},
+          delay: const Duration(seconds: 1),
+        );
+        final notifier = makeNotifier(repository)..onQueryChanged('카');
+        async.elapse(wait); // '카' 요청이 나감(1초 뒤 응답)
+        notifier.onQueryChanged('카페');
+        // 지금 0.3초. '카' 응답은 1.3초, '카페'(0.6초에 요청) 응답은 1.6초에 온다 → 1.4초로.
+        async.elapse(const Duration(milliseconds: 1100));
+        expect(state().suggestions, isEmpty);
+        expect(state().isSuggesting, isTrue);
+
+        async.elapse(const Duration(seconds: 1));
+        expect(repository.receivedQueries, ['카', '카페']);
+        expect(state().suggestions, cafes);
+      });
+    });
+
+    test('공백만 바뀌면 다시 찾지 않는다', () {
+      fakeAsync((async) {
+        final repository = FakePlaceRepository(result: cafes);
+        final notifier = makeNotifier(repository)..onQueryChanged('강남 카페');
+        async
+          ..elapse(wait)
+          ..flushMicrotasks();
+
+        notifier.onQueryChanged('강남  카페 ');
+        async.elapse(wait * 2);
+        expect(repository.receivedQueries, ['강남 카페']);
+        expect(state().suggestions, cafes);
+      });
+    });
+
+    test('입력을 지우면 미리보기를 비우고 대기 중인 요청은 보내지 않는다', () {
+      fakeAsync((async) {
+        final repository = FakePlaceRepository(result: cafes);
+        makeNotifier(repository)
+          ..onQueryChanged('카페')
+          ..onQueryChanged('');
+
+        async.elapse(wait * 2);
+        expect(repository.receivedQueries, isEmpty);
+        expect(state().suggestFor, isEmpty);
+        expect(state().isSuggesting, isFalse);
+      });
+    });
+
+    test('엔터로 검색하면 대기 중인 미리보기 요청은 보내지 않는다', () {
+      fakeAsync((async) {
+        final repository = FakePlaceRepository(result: cafes);
+        unawaited(
+          makeNotifier(repository).searchFor('카페', center: Fixtures.cityHall),
+        );
+        async
+          ..elapse(wait * 2)
+          ..flushMicrotasks();
+        expect(repository.receivedQueries, ['카페']); // 제출 검색 한 번뿐
+      });
+    });
+
+    test('미리보기 장소를 고르면 다시 찾지 않고 지도에 띄워 그 장소를 연다', () {
+      fakeAsync((async) {
+        final repository = FakePlaceRepository(result: cafes);
+        final recents = FakeRecentSearchRepository();
+        final recentPlaces = FakeRecentPlaceRepository();
+        final notifier =
+            makeNotifier(
+                repository,
+                recents: recents,
+                recentPlaces: recentPlaces,
+              )
+              ..openSearchPage()
+              ..onQueryChanged(' 카페 ');
+        async
+          ..elapse(wait)
+          ..flushMicrotasks();
+
+        unawaited(notifier.pickSuggestion(cafes[1]));
+        async.flushMicrotasks();
+
+        expect(repository.receivedQueries, ['카페']); // 미리보기 한 번뿐
+        expect(state().isSearchPageOpen, isFalse);
+        expect(state().source, const SearchSource.keyword('카페'));
+        expect(state().places, cafes);
+        expect(state().selectedPlace, cafes[1]);
+        expect(effects, [PlaceSearchEffect.focus(cafes[1].location)]);
+        expect(recents.stored, ['카페']);
+        expect(recentPlaces.stored.map((p) => p.place), [cafes[1]]);
+      });
+    });
+
+    test('화면이 닫히면 대기 중인 미리보기 요청은 보내지 않는다', () {
+      fakeAsync((async) {
+        final repository = FakePlaceRepository(result: cafes);
+        makeNotifier(repository).onQueryChanged('카페');
+
+        container.dispose();
+        async.elapse(wait * 2);
+        expect(repository.receivedQueries, isEmpty);
+      });
     });
   });
 }

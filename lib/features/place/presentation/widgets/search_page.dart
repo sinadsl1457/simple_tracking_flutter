@@ -1,10 +1,13 @@
-// [place/presentation] 지도 검색창을 누르면 덮이는 전체 화면 검색 페이지(최근 검색어). PlaceSearchNotifier를 쓴다.
+// [place/presentation] 지도 검색창을 누르면 덮이는 전체 화면 검색 페이지. PlaceSearchNotifier를 쓴다.
+// 입력 중이면 실시간 미리보기(입력이 0.3초 멈추면 검색), 비어 있으면 최근 검색어.
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:simple_tracking/core/geo/geo_point.dart';
+import 'package:simple_tracking/core/presentation/formatters.dart';
+import 'package:simple_tracking/features/place/domain/place.dart';
 import 'package:simple_tracking/features/place/presentation/place_search_notifier.dart';
 import 'package:simple_tracking/features/place/presentation/widgets/search_widgets.dart';
 
@@ -40,10 +43,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(placeSearchProvider);
-    final theme = Theme.of(context);
-    final secondary = theme.colorScheme.onSurfaceVariant;
     return Material(
-      color: theme.colorScheme.surface,
+      color: Theme.of(context).colorScheme.surface,
       child: SafeArea(
         bottom: false,
         child: Column(
@@ -52,55 +53,122 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               controller: _text,
               isSubmitting: state.isSubmitting,
               onBack: _search.closeSearchPage,
-              onChanged: _search.onQueryChanged,
+              onChanged: (query) =>
+                  _search.onQueryChanged(query, center: widget.center),
               onSubmitted: () =>
                   unawaited(_search.submit(center: widget.center)),
             ),
             const Divider(height: 1),
-            if (state.recentQueries.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 40),
-                child: Text(
-                  '최근 검색 기록이 없어요',
-                  style: TextStyle(color: secondary),
+            // 입력 중이면 실시간 미리보기, 비어 있으면 최근 검색어.
+            if (state.suggestFor.isNotEmpty)
+              Expanded(
+                child: _SuggestionList(
+                  query: state.suggestFor,
+                  places: state.suggestions,
+                  isLoading: state.isSuggesting,
+                  center: widget.center,
+                  onPick: (place) => unawaited(_search.pickSuggestion(place)),
                 ),
               )
             else
-              Expanded(
-                child: ListView(
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
-                      child: Row(
-                        children: [
-                          Text(
-                            '최근 검색',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: secondary,
-                            ),
-                          ),
-                          const Spacer(),
-                          TextButton(
-                            onPressed: () => unawaited(_search.clearRecents()),
-                            child: const Text('전체 삭제'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    for (final recent in state.recentQueries)
-                      RecentQueryTile(
-                        query: recent,
-                        onTap: () => _searchRecent(recent),
-                        onRemove: () => unawaited(_search.removeRecent(recent)),
-                      ),
-                  ],
-                ),
-              ),
+              _recentList(state.recentQueries),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _recentList(List<String> recents) {
+    final theme = Theme.of(context);
+    final secondary = theme.colorScheme.onSurfaceVariant;
+    if (recents.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 40),
+        child: Text('최근 검색 기록이 없어요', style: TextStyle(color: secondary)),
+      );
+    }
+    return Expanded(
+      child: ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
+            child: Row(
+              children: [
+                Text(
+                  '최근 검색',
+                  style: theme.textTheme.titleSmall?.copyWith(color: secondary),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => unawaited(_search.clearRecents()),
+                  child: const Text('전체 삭제'),
+                ),
+              ],
+            ),
+          ),
+          for (final recent in recents)
+            RecentQueryTile(
+              query: recent,
+              onTap: () => _searchRecent(recent),
+              onRemove: () => unawaited(_search.removeRecent(recent)),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 실시간 검색 미리보기. 받는 중에는 위에 얇은 진행 표시(이전 결과는 비운 상태),
+/// 다 받았는데 없으면 안내 문구. 장소를 누르면 지도에서 그 장소를 연다.
+class _SuggestionList extends StatelessWidget {
+  const _SuggestionList({
+    required this.query,
+    required this.places,
+    required this.isLoading,
+    required this.center,
+    required this.onPick,
+  });
+
+  final String query;
+  final List<Place> places;
+  final bool isLoading;
+  final GeoPoint? center;
+  final ValueChanged<Place> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
+    if (isLoading) return const LinearProgressIndicator(minHeight: 2);
+    if (places.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 40),
+        child: Text(
+          "'$query' 검색 결과가 없어요",
+          textAlign: TextAlign.center,
+          style: TextStyle(color: secondary),
+        ),
+      );
+    }
+    return ListView.builder(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      itemCount: places.length,
+      itemBuilder: (context, i) {
+        final place = places[i];
+        return ListTile(
+          leading: Icon(Icons.place_outlined, color: secondary),
+          title: Text(place.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+          subtitle: Text(
+            [
+              ?distanceBetween(center, place.location),
+              place.address,
+            ].join(' · '),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          onTap: () => onPick(place),
+        );
+      },
     );
   }
 }
