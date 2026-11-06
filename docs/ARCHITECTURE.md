@@ -77,9 +77,11 @@ CategoryChips 탭
 _DirectionsButton → RoutePlannerPage(push)
   출발지 기본 = 내 위치, 최근 장소 탭 = 도착지
   두 지점이 정해지면 RoutePlannerNotifier가 effect completed(RoutePlan) → 페이지가 pop(plan)
-→ MapScreen이 받은 plan으로 RouteNotifier.plan(...)
-→ 세 이동 수단을 동시에 조회(Future.wait), 도착하는 대로 state.results에 반영
-→ state.overlay(지도에 그릴 선) 변경 → MapScreen의 ref.listen이 지도에 showRoute
+→ MapScreen이 받은 plan으로 RouteNotifier.plan(...) 후 경로 목록(RouteListPage, 전체 화면) push
+→ 세 이동 수단을 동시에 조회(Future.wait), 도착하는 대로 state.results에 반영 → 목록에 보임(지도에 선 없음)
+→ 목록에서 경로 탭 → showRoute(index) → 목록 pop → state.overlay 변경 → MapScreen의 ref.listen이 지도에 showRoute
+   + effect fitCamera → 아래 경로 카드가 그려진 뒤 실제 높이로 카메라를 맞춤
+→ 지도의 ‹(또는 뒤로 가기) → backToList() → 선을 지우고 목록 push / 목록의 ✕ → closeRoute() → 카메라 복원
 ```
 
 ### 4-3. Notifier → 지도 반영 (MapScreen)

@@ -24,17 +24,12 @@ import 'package:simple_tracking/features/place/presentation/widgets/category_chi
 import 'package:simple_tracking/features/place/presentation/widgets/map_search_bar.dart';
 import 'package:simple_tracking/features/place/presentation/widgets/place_results_sheet.dart';
 import 'package:simple_tracking/features/place/presentation/widgets/search_page.dart';
-import 'package:simple_tracking/features/route/domain/route_endpoint.dart';
-import 'package:simple_tracking/features/route/domain/travel_mode.dart';
-import 'package:simple_tracking/features/route/presentation/endpoint_picker_page.dart';
+import 'package:simple_tracking/features/route/presentation/route_list_page.dart';
 import 'package:simple_tracking/features/route/presentation/route_notifier.dart';
 import 'package:simple_tracking/features/route/presentation/route_planner_notifier.dart';
 import 'package:simple_tracking/features/route/presentation/route_planner_page.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/route_endpoint_display.dart';
-import 'package:simple_tracking/features/route/presentation/widgets/route_header.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/route_summary_card.dart';
-import 'package:simple_tracking/features/route/presentation/widgets/transit_route_list.dart';
-import 'package:simple_tracking/features/route/presentation/widgets/travel_mode_tabs.dart';
 
 /// 지도 화면. 내 위치·검색·길찾기 상태를 지도와 UI에 반영한다.
 class MapScreen extends ConsumerStatefulWidget {
@@ -69,9 +64,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   String? _mapError;
   String? _toast;
   SheetDetent _placeSheetDetent = SheetDetent.medium;
-  SheetDetent _transitSheetDetent = SheetDetent.medium;
   double _sheetHeight = 0;
   double _routeCardHeight = 0;
+
+  /// 고른 경로 카드. 카메라를 맞출 때 막 그려진 카드의 실제 높이를 읽는다.
+  final GlobalKey _routeCardKey = GlobalKey();
 
   /// 화면 위 UI(검색창·칩 또는 길찾기 카드·탭)의 높이. 카메라를 그 아래에 맞추는 데 쓴다.
   double _topControlsHeight = 0;
@@ -202,33 +199,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   // ── 사용자 동작 ──
 
+  /// 장소 상세의 "길찾기". 내 위치에서 그 장소까지 찾고 경로 목록을 연다.
   void _startRoute(Place place) {
     // 권한이 없으면 길찾기 대신 권한부터 요청한다.
     if (!_mapState.hasLocationPermission) {
       _myLocation.onMyLocationButtonTapped();
       return;
     }
-    setState(() => _transitSheetDetent = SheetDetent.medium);
     unawaited(_route.start(place, myLocation: _mapState.myLocation?.point));
+    unawaited(_openRouteList());
   }
 
-  /// 출발지([isOrigin]) 또는 도착지를 검색해 바꾼다.
-  Future<void> _pickEndpoint({required bool isOrigin}) async {
-    final myLocation = _mapState.myLocation?.point;
-    final endpoint = await context.push<RouteEndpoint>(
-      EndpointPickerPage.path,
-      extra: EndpointPickerArgs(
-        title: isOrigin ? '출발지' : '도착지',
-        myLocation: myLocation,
-      ),
-    );
-    if (endpoint == null) return;
-    await (isOrigin
-        ? _route.changeOrigin(endpoint, myLocation: myLocation)
-        : _route.changeDestination(endpoint, myLocation: myLocation));
-  }
-
-  /// 검색창 옆 길찾기 버튼. 준비 화면에서 두 지점을 정하면 지도에서 찾는다.
+  /// 검색창 옆 길찾기 버튼. 준비 화면에서 두 지점을 정하면 찾고 경로 목록을 연다.
   Future<void> _openRoutePlanner() async {
     final plan = await context.push<RoutePlan>(
       RoutePlannerPage.path,
@@ -238,20 +220,37 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       ),
     );
     if (plan == null || !mounted) return;
-    setState(() => _transitSheetDetent = SheetDetent.medium);
-    await _route.plan(
-      origin: plan.origin,
-      destination: plan.destination,
-      mode: plan.mode,
-      myLocation: _mapState.myLocation?.point,
+    unawaited(
+      _route.plan(
+        origin: plan.origin,
+        destination: plan.destination,
+        mode: plan.mode,
+        myLocation: _mapState.myLocation?.point,
+      ),
+    );
+    await _openRouteList();
+  }
+
+  /// 경로 목록(전체 화면). 내 위치 좌표를 찾지 못했으면(effect findingLocation) 열지 않는다.
+  /// 목록에서 경로를 고르면 지도에 그 경로가, 닫으면(✕) 길찾기가 끝난 지도가 보인다.
+  Future<void> _openRouteList() async {
+    if (!_routeState.isActive) return;
+    await context.push<bool>(
+      RouteListPage.path,
+      extra: RouteListArgs(myLocation: _mapState.myLocation?.point),
     );
   }
 
-  /// 길찾기 카드의 ✕. 카메라를 길찾기 시작 전 위치·줌으로 돌려준다.
+  /// 지도에서 경로를 보던 중 ‹(또는 뒤로 가기). 지도 선을 지우고 목록으로 돌아간다.
+  void _backToRouteList() {
+    _route.backToList();
+    unawaited(_openRouteList());
+  }
+
+  /// 길찾기가 끝나면(목록의 ✕·뒤로 가기) 카메라를 길찾기 시작 전 위치·줌으로 돌려준다.
   /// 경로 전체를 보려고 줌 아웃한 상태로 남지 않게 한다.
   /// 길찾기 중에 따라가기를 켰더라도 끈다. 켜 두면 복원한 카메라를 트래킹이 다시 끌고 간다.
-  void _closeRoute() {
-    _route.closeRoute();
+  void _restoreCameraAfterRoute() {
     _myLocation.stopFollowing();
     final before = _cameraBeforeRoute;
     _cameraBeforeRoute = null;
@@ -313,17 +312,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         SearchFailureEffect(:final failure) => _showToast(failure.userMessage),
       };
 
-  /// RouteNotifier effect → 경로에 카메라 맞추기(대중교통은 목록 시트, 나머지는 요약 카드 위), 오류 토스트.
+  /// RouteNotifier effect → 고른 경로에 카메라 맞추기(아래 경로 카드 위), 오류 토스트.
   void _onRouteEffect(BuildContext context, RouteEffect effect) {
     switch (effect) {
       case FitRouteEffect(:final points):
         _cameraAwayFromMe(
-          () => _fitCamera(
-            points,
-            bottomCovered: _routeState.selectedMode == TravelMode.transit
-                ? _mediumSheetHeight
-                : _routeCardHeight,
-          ),
+          // 경로 카드는 이 effect와 같은 상태 변경으로 이제 막 그려진다. 다 그린 뒤 실제 높이로 맞춘다.
+          () => WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            final card = _routeCardKey.currentContext?.size?.height;
+            _fitCamera(points, bottomCovered: card ?? _routeCardHeight);
+          }),
         );
       case RouteFailureEffect(:final failure):
         unawaited(_map?.showRoute(null));
@@ -375,33 +374,48 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       })
       // 길찾기 중에는 검색 핀을 숨긴다(출발·도착 말풍선만 보이게).
       ..listen(routeProvider.select((s) => s.isActive), (_, isActive) {
-        // 경로에 맞춰 줌 아웃하기 전에 지금 카메라를 기억해 둔다(_closeRoute에서 복원).
-        if (isActive) _cameraBeforeRoute = _cameraPosition;
+        // 경로에 맞춰 줌 아웃하기 전에 지금 카메라를 기억해 두고, 길찾기가 끝나면 되돌린다.
+        if (isActive) {
+          _cameraBeforeRoute = _cameraPosition;
+        } else {
+          _restoreCameraAfterRoute();
+        }
         _syncPlaceMarkers();
       })
-      // 경로(선택한 수단·대중교통 후보)가 바뀌면 지도 선을 다시 그린다.
+      // 목록에서 경로를 고르거나 목록으로 돌아가면 지도 선을 다시 그린다(목록 단계는 선 없음).
       ..listen(
         routeProvider.select((s) => s.overlay),
         (_, overlay) => unawaited(_map?.showRoute(overlay)),
       );
-    // Notifier 일회성 이벤트 → 지도 카메라·토스트·대화상자.
-    return EffectListener<MapEffect>(
-      effects: _myLocation.effects,
-      onEffect: _onMapEffect,
-      child: EffectListener<PlaceSearchEffect>(
-        effects: _search.effects,
-        onEffect: _onSearchEffect,
-        child: EffectListener<RouteEffect>(
-          effects: _route.effects,
-          onEffect: _onRouteEffect,
-          child: _buildBody(context),
+    final isShowingRoute = ref.watch(
+      routeProvider.select((s) => s.isShowingRoute),
+    );
+    // 경로를 보던 중 뒤로 가기(Android)는 앱을 닫지 않고 경로 목록으로 돌아간다.
+    return PopScope(
+      canPop: !isShowingRoute,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _backToRouteList();
+      },
+      // Notifier 일회성 이벤트 → 지도 카메라·토스트·대화상자.
+      child: EffectListener<MapEffect>(
+        effects: _myLocation.effects,
+        onEffect: _onMapEffect,
+        child: EffectListener<PlaceSearchEffect>(
+          effects: _search.effects,
+          onEffect: _onSearchEffect,
+          child: EffectListener<RouteEffect>(
+            effects: _route.effects,
+            onEffect: _onRouteEffect,
+            child: _buildBody(context),
+          ),
         ),
       ),
     );
   }
 
   /// 화면 구성(Stack, 아래에서 위 순서): 지도 → 로드 실패 안내 → 상단(검색창·칩 또는 길찾기 카드·탭)
-  /// → 하단(장소 시트 / 대중교통 시트 / 경로 요약 카드) → 내 위치 버튼 → 토스트 → 검색 페이지.
+  /// → 하단(장소 시트 / 고른 경로 카드) → 내 위치 버튼 → 토스트 → 검색 페이지.
+  /// 경로 목록은 이 화면 위에 따로 뜨는 페이지(RouteListPage)다.
   Widget _buildBody(BuildContext context) {
     final mapState = ref.watch(mapProvider);
     final search = ref.watch(placeSearchProvider);
@@ -409,13 +423,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
     final padding = MediaQuery.paddingOf(context);
     final isPlaceSheetVisible = search.source != null && !route.isActive;
-    final isTransitSheetVisible =
-        route.isActive && route.selectedMode == TravelMode.transit;
-    // 내 위치 버튼·토스트를 붙일 높이: 시트 윗변 위 → 길찾기 요약 카드 위 → 화면 아래.
+    // 내 위치 버튼·토스트를 붙일 높이: 시트 윗변 위 → 경로 카드 위 → 화면 아래.
     final double floatingBottom;
-    if (isPlaceSheetVisible || isTransitSheetVisible) {
+    if (isPlaceSheetVisible) {
       floatingBottom = _sheetHeight + 12;
-    } else if (route.isActive) {
+    } else if (route.isShowingRoute) {
       floatingBottom = _routeCardHeight + 12;
     } else {
       floatingBottom = padding.bottom + 24;
@@ -446,9 +458,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             right: 0,
             child: MeasureSize(
               onChange: (size) => _topControlsHeight = size.height,
-              child: route.destination == null
-                  ? _searchControls(search, isPlaceSheetVisible)
-                  : _routeControls(route),
+              child: route.isShowingRoute
+                  ? _routeShownControls(route)
+                  : _searchControls(search, isPlaceSheetVisible),
             ),
           ),
           if (isPlaceSheetVisible)
@@ -469,22 +481,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 ),
               ),
             ),
-          if (isTransitSheetVisible)
-            Positioned.fill(
-              child: MapBottomSheet(
-                key: const ValueKey('transit'),
-                detent: _transitSheetDetent,
-                topReservedHeight: padding.top + 160,
-                onHeightChanged: _setSheetHeight,
-                header: TransitRouteListHeader(result: route.selectedResult),
-                slivers: transitRouteSlivers(
-                  result: route.selectedResult,
-                  selectedIndex: route.selectedTransitIndex,
-                  onSelect: _route.selectTransitRoute,
-                ),
-              ),
-            )
-          else if (route.isActive)
+          if (route.isShowingRoute)
             Positioned(
               left: 0,
               right: 0,
@@ -493,8 +490,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 onChange: (size) =>
                     setState(() => _routeCardHeight = size.height),
                 child: RouteSummaryCard(
+                  key: _routeCardKey,
                   mode: route.selectedMode,
                   result: route.selectedResult,
+                  transitIndex: route.selectedTransitIndex,
                 ),
               ),
             ),
@@ -562,29 +561,46 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     ],
   );
 
-  /// 길찾기 중 상단: 출발지·도착지 카드 + 이동 수단 탭.
-  Widget _routeControls(RouteState route) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16),
-    child: Column(
-      children: [
-        RouteHeader(
-          originName: route.origin!.title,
-          destinationName: route.destination!.title,
-          onTapOrigin: () => unawaited(_pickEndpoint(isOrigin: true)),
-          onTapDestination: () => unawaited(_pickEndpoint(isOrigin: false)),
-          onSwap: () =>
-              unawaited(_route.swap(myLocation: _mapState.myLocation?.point)),
-          onClose: _closeRoute,
+  /// 지도에서 경로를 보는 중 상단: ‹(목록으로) + "출발 → 도착". 이름 줄을 눌러도 목록으로 간다.
+  Widget _routeShownControls(RouteState route) {
+    final theme = Theme.of(context);
+    final title =
+        '${route.origin?.title ?? ''} → ${route.destination?.title ?? ''}';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Material(
+        color: theme.colorScheme.surface,
+        elevation: 3,
+        shadowColor: Colors.black26,
+        borderRadius: BorderRadius.circular(28),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(28),
+          onTap: _backToRouteList,
+          child: SizedBox(
+            height: 56,
+            child: Row(
+              children: [
+                IconButton(
+                  onPressed: _backToRouteList,
+                  icon: const Icon(Icons.arrow_back_ios_new),
+                  tooltip: '경로 목록',
+                ),
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+                const SizedBox(width: 20),
+              ],
+            ),
+          ),
         ),
-        const SizedBox(height: 8),
-        TravelModeTabs(
-          selected: route.selectedMode,
-          results: route.results,
-          onSelect: _route.selectMode,
-        ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 class _MissingKeyNotice extends StatelessWidget {

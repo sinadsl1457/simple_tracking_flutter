@@ -1,6 +1,7 @@
-// [route/presentation] 지도 위 길찾기 결과 화면 로직(Riverpod Notifier).
-// 출발지·도착지(RouteEndpoint) → 좌표 결정 → 세 이동 수단 동시 조회 → 탭별 결과와 지도 선(overlay).
+// [route/presentation] 길찾기 결과 로직(Riverpod Notifier). 화면: route_list_page(목록) · MapScreen(고른 경로).
+// 출발지·도착지(RouteEndpoint) → 좌표 결정 → 세 이동 수단 동시 조회 → 목록 → 고른 경로만 지도 선(overlay).
 // 진입: start(장소 상세 "길찾기") · plan(길찾기 준비 화면) / 변경: changeOrigin·changeDestination·swap
+// 목록 ↔ 지도: showRoute(목록에서 경로 탭) · backToList(지도의 ‹)
 // 테스트: test/features/route/presentation/route_notifier_test.dart
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -120,12 +121,14 @@ class RouteNotifier extends _$RouteNotifier {
     }
 
     final generation = ++_generation;
+    // 새로 찾으면 목록 단계부터. 경로는 목록에서 고른 뒤에 지도에 그린다.
     state = state.copyWith(
       origin: origin,
       destination: destination,
       originPoint: from,
       destinationPoint: to,
       selectedTransitIndex: 0,
+      isShowingRoute: false,
       results: {
         for (final mode in TravelMode.values) mode: const ModeResult.loading(),
       },
@@ -138,7 +141,6 @@ class RouteNotifier extends _$RouteNotifier {
         _fetch(mode, from, to).then((result) {
           if (generation != _generation) return;
           state = state.copyWith(results: {...state.results, mode: result});
-          if (mode == state.selectedMode) _fitSelected();
         }),
     ]);
   }
@@ -149,18 +151,21 @@ class RouteNotifier extends _$RouteNotifier {
         PlaceEndpoint(:final place) => place.location,
       };
 
-  /// 호출: 이동 수단 탭. 그 수단의 경로로 지도 선과 카메라를 바꾼다(다시 조회하지 않는다).
+  /// 호출: 목록 화면의 이동 수단 탭. 그 수단의 목록을 보인다(다시 조회하지 않는다).
   void selectMode(TravelMode mode) {
     if (mode == state.selectedMode) return;
     state = state.copyWith(selectedMode: mode, selectedTransitIndex: 0);
+  }
+
+  /// 호출: 목록에서 경로 탭. 지금 탭([RouteState.selectedMode])의 [index]번째 경로를 지도에 그리고
+  /// 카메라를 맞춘다(effect fitCamera). 자동차·도보는 경로가 하나라 [index]는 0.
+  void showRoute({int index = 0}) {
+    state = state.copyWith(selectedTransitIndex: index, isShowingRoute: true);
     _fitSelected();
   }
 
-  /// 호출: 대중교통 목록에서 경로 후보 탭.
-  void selectTransitRoute(int index) {
-    state = state.copyWith(selectedTransitIndex: index);
-    _fitSelected();
-  }
+  /// 호출: 지도에서 경로를 보던 중 ‹(뒤로). 지도 선을 지우고 목록 단계로 돌아간다.
+  void backToList() => state = state.copyWith(isShowingRoute: false);
 
   /// 호출: 길찾기 카드의 ✕. 결과를 지우고 검색 화면으로 돌아간다.
   void closeRoute() {

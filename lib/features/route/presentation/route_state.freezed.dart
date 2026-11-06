@@ -449,7 +449,8 @@ mixin _$RouteState {
 
  RouteEndpoint? get origin; RouteEndpoint? get destination;/// 조회에 쓴 실제 좌표. 내 위치는 조회를 시작한 순간의 좌표다.
  GeoPoint? get originPoint; GeoPoint? get destinationPoint;/// 마지막으로 고른 이동 수단을 다음 길찾기에서도 유지한다.
- TravelMode get selectedMode; Map<TravelMode, ModeResult> get results; int get selectedTransitIndex;
+ TravelMode get selectedMode; Map<TravelMode, ModeResult> get results; int get selectedTransitIndex;/// 목록에서 경로를 골라 지도에 그 경로를 보여 주는 중. false면 경로 목록 단계(지도에 선 없음).
+ bool get isShowingRoute;
 /// Create a copy of RouteState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -461,20 +462,20 @@ $RouteStateCopyWith<RouteState> get copyWith => _$RouteStateCopyWithImpl<RouteSt
 @override
 bool operator ==(Object other) {
   final _this = this as RouteState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RouteState&&(identical(other.origin, _this.origin) || other.origin == _this.origin)&&(identical(other.destination, _this.destination) || other.destination == _this.destination)&&(identical(other.originPoint, _this.originPoint) || other.originPoint == _this.originPoint)&&(identical(other.destinationPoint, _this.destinationPoint) || other.destinationPoint == _this.destinationPoint)&&(identical(other.selectedMode, _this.selectedMode) || other.selectedMode == _this.selectedMode)&&const DeepCollectionEquality().equals(other.results, _this.results)&&(identical(other.selectedTransitIndex, _this.selectedTransitIndex) || other.selectedTransitIndex == _this.selectedTransitIndex));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RouteState&&(identical(other.origin, _this.origin) || other.origin == _this.origin)&&(identical(other.destination, _this.destination) || other.destination == _this.destination)&&(identical(other.originPoint, _this.originPoint) || other.originPoint == _this.originPoint)&&(identical(other.destinationPoint, _this.destinationPoint) || other.destinationPoint == _this.destinationPoint)&&(identical(other.selectedMode, _this.selectedMode) || other.selectedMode == _this.selectedMode)&&const DeepCollectionEquality().equals(other.results, _this.results)&&(identical(other.selectedTransitIndex, _this.selectedTransitIndex) || other.selectedTransitIndex == _this.selectedTransitIndex)&&(identical(other.isShowingRoute, _this.isShowingRoute) || other.isShowingRoute == _this.isShowingRoute));
 }
 
 
 @override
 int get hashCode {
   final _this = this as RouteState;
-  return Object.hash(runtimeType,_this.origin,_this.destination,_this.originPoint,_this.destinationPoint,_this.selectedMode,const DeepCollectionEquality().hash(_this.results),_this.selectedTransitIndex);
+  return Object.hash(runtimeType,_this.origin,_this.destination,_this.originPoint,_this.destinationPoint,_this.selectedMode,const DeepCollectionEquality().hash(_this.results),_this.selectedTransitIndex,_this.isShowingRoute);
 }
 
 @override
 String toString() {
   final _this = this as RouteState;
-  return 'RouteState(origin: ${_this.origin}, destination: ${_this.destination}, originPoint: ${_this.originPoint}, destinationPoint: ${_this.destinationPoint}, selectedMode: ${_this.selectedMode}, results: ${_this.results}, selectedTransitIndex: ${_this.selectedTransitIndex})';
+  return 'RouteState(origin: ${_this.origin}, destination: ${_this.destination}, originPoint: ${_this.originPoint}, destinationPoint: ${_this.destinationPoint}, selectedMode: ${_this.selectedMode}, results: ${_this.results}, selectedTransitIndex: ${_this.selectedTransitIndex}, isShowingRoute: ${_this.isShowingRoute})';
 }
 
 
@@ -485,7 +486,7 @@ abstract mixin class $RouteStateCopyWith<$Res>  {
   factory $RouteStateCopyWith(RouteState value, $Res Function(RouteState) _then) = _$RouteStateCopyWithImpl;
 @useResult
 $Res call({
- RouteEndpoint? origin, RouteEndpoint? destination, GeoPoint? originPoint, GeoPoint? destinationPoint, TravelMode selectedMode, Map<TravelMode, ModeResult> results, int selectedTransitIndex
+ RouteEndpoint? origin, RouteEndpoint? destination, GeoPoint? originPoint, GeoPoint? destinationPoint, TravelMode selectedMode, Map<TravelMode, ModeResult> results, int selectedTransitIndex, bool isShowingRoute
 });
 
 
@@ -502,7 +503,7 @@ class _$RouteStateCopyWithImpl<$Res>
 
 /// Create a copy of RouteState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? origin = freezed,Object? destination = freezed,Object? originPoint = freezed,Object? destinationPoint = freezed,Object? selectedMode = null,Object? results = null,Object? selectedTransitIndex = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? origin = freezed,Object? destination = freezed,Object? originPoint = freezed,Object? destinationPoint = freezed,Object? selectedMode = null,Object? results = null,Object? selectedTransitIndex = null,Object? isShowingRoute = null,}) {
   return _then(RouteState(
 origin: freezed == origin ? _self.origin : origin // ignore: cast_nullable_to_non_nullable
 as RouteEndpoint?,destination: freezed == destination ? _self.destination : destination // ignore: cast_nullable_to_non_nullable
@@ -511,7 +512,8 @@ as GeoPoint?,destinationPoint: freezed == destinationPoint ? _self.destinationPo
 as GeoPoint?,selectedMode: null == selectedMode ? _self.selectedMode : selectedMode // ignore: cast_nullable_to_non_nullable
 as TravelMode,results: null == results ? _self.results : results // ignore: cast_nullable_to_non_nullable
 as Map<TravelMode, ModeResult>,selectedTransitIndex: null == selectedTransitIndex ? _self.selectedTransitIndex : selectedTransitIndex // ignore: cast_nullable_to_non_nullable
-as int,
+as int,isShowingRoute: null == isShowingRoute ? _self.isShowingRoute : isShowingRoute // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 /// Create a copy of RouteState
@@ -644,10 +646,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( RouteEndpoint? origin,  RouteEndpoint? destination,  GeoPoint? originPoint,  GeoPoint? destinationPoint,  TravelMode selectedMode,  Map<TravelMode, ModeResult> results,  int selectedTransitIndex)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( RouteEndpoint? origin,  RouteEndpoint? destination,  GeoPoint? originPoint,  GeoPoint? destinationPoint,  TravelMode selectedMode,  Map<TravelMode, ModeResult> results,  int selectedTransitIndex,  bool isShowingRoute)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _RouteState() when $default != null:
-return $default(_that.origin,_that.destination,_that.originPoint,_that.destinationPoint,_that.selectedMode,_that.results,_that.selectedTransitIndex);case _:
+return $default(_that.origin,_that.destination,_that.originPoint,_that.destinationPoint,_that.selectedMode,_that.results,_that.selectedTransitIndex,_that.isShowingRoute);case _:
   return orElse();
 
 }
@@ -665,10 +667,10 @@ return $default(_that.origin,_that.destination,_that.originPoint,_that.destinati
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( RouteEndpoint? origin,  RouteEndpoint? destination,  GeoPoint? originPoint,  GeoPoint? destinationPoint,  TravelMode selectedMode,  Map<TravelMode, ModeResult> results,  int selectedTransitIndex)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( RouteEndpoint? origin,  RouteEndpoint? destination,  GeoPoint? originPoint,  GeoPoint? destinationPoint,  TravelMode selectedMode,  Map<TravelMode, ModeResult> results,  int selectedTransitIndex,  bool isShowingRoute)  $default,) {final _that = this;
 switch (_that) {
 case _RouteState():
-return $default(_that.origin,_that.destination,_that.originPoint,_that.destinationPoint,_that.selectedMode,_that.results,_that.selectedTransitIndex);case _:
+return $default(_that.origin,_that.destination,_that.originPoint,_that.destinationPoint,_that.selectedMode,_that.results,_that.selectedTransitIndex,_that.isShowingRoute);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -685,10 +687,10 @@ return $default(_that.origin,_that.destination,_that.originPoint,_that.destinati
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( RouteEndpoint? origin,  RouteEndpoint? destination,  GeoPoint? originPoint,  GeoPoint? destinationPoint,  TravelMode selectedMode,  Map<TravelMode, ModeResult> results,  int selectedTransitIndex)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( RouteEndpoint? origin,  RouteEndpoint? destination,  GeoPoint? originPoint,  GeoPoint? destinationPoint,  TravelMode selectedMode,  Map<TravelMode, ModeResult> results,  int selectedTransitIndex,  bool isShowingRoute)?  $default,) {final _that = this;
 switch (_that) {
 case _RouteState() when $default != null:
-return $default(_that.origin,_that.destination,_that.originPoint,_that.destinationPoint,_that.selectedMode,_that.results,_that.selectedTransitIndex);case _:
+return $default(_that.origin,_that.destination,_that.originPoint,_that.destinationPoint,_that.selectedMode,_that.results,_that.selectedTransitIndex,_that.isShowingRoute);case _:
   return null;
 
 }
@@ -700,7 +702,7 @@ return $default(_that.origin,_that.destination,_that.originPoint,_that.destinati
 
 
 class _RouteState extends RouteState {
-  const _RouteState({this.origin, this.destination, this.originPoint, this.destinationPoint, this.selectedMode = TravelMode.transit,  Map<TravelMode, ModeResult> results = const {}, this.selectedTransitIndex = 0}): _results = results,super._();
+  const _RouteState({this.origin, this.destination, this.originPoint, this.destinationPoint, this.selectedMode = TravelMode.transit,  Map<TravelMode, ModeResult> results = const {}, this.selectedTransitIndex = 0, this.isShowingRoute = false}): _results = results,super._();
   
 
 @override final  RouteEndpoint? origin;
@@ -718,6 +720,8 @@ class _RouteState extends RouteState {
 }
 
 @override@JsonKey() final  int selectedTransitIndex;
+/// 목록에서 경로를 골라 지도에 그 경로를 보여 주는 중. false면 경로 목록 단계(지도에 선 없음).
+@override@JsonKey() final  bool isShowingRoute;
 
 /// Create a copy of RouteState
 /// with the given fields replaced by the non-null parameter values.
@@ -729,18 +733,18 @@ _$RouteStateCopyWith<_RouteState> get copyWith => __$RouteStateCopyWithImpl<_Rou
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _RouteState&&(identical(other.origin, origin) || other.origin == origin)&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.originPoint, originPoint) || other.originPoint == originPoint)&&(identical(other.destinationPoint, destinationPoint) || other.destinationPoint == destinationPoint)&&(identical(other.selectedMode, selectedMode) || other.selectedMode == selectedMode)&&const DeepCollectionEquality().equals(other.results, _results)&&(identical(other.selectedTransitIndex, selectedTransitIndex) || other.selectedTransitIndex == selectedTransitIndex));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _RouteState&&(identical(other.origin, origin) || other.origin == origin)&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.originPoint, originPoint) || other.originPoint == originPoint)&&(identical(other.destinationPoint, destinationPoint) || other.destinationPoint == destinationPoint)&&(identical(other.selectedMode, selectedMode) || other.selectedMode == selectedMode)&&const DeepCollectionEquality().equals(other.results, _results)&&(identical(other.selectedTransitIndex, selectedTransitIndex) || other.selectedTransitIndex == selectedTransitIndex)&&(identical(other.isShowingRoute, isShowingRoute) || other.isShowingRoute == isShowingRoute));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,origin,destination,originPoint,destinationPoint,selectedMode,const DeepCollectionEquality().hash(_results),selectedTransitIndex);
+    return Object.hash(runtimeType,origin,destination,originPoint,destinationPoint,selectedMode,const DeepCollectionEquality().hash(_results),selectedTransitIndex,isShowingRoute);
 }
 
 @override
 String toString() {
-    return 'RouteState(origin: $origin, destination: $destination, originPoint: $originPoint, destinationPoint: $destinationPoint, selectedMode: $selectedMode, results: $results, selectedTransitIndex: $selectedTransitIndex)';
+    return 'RouteState(origin: $origin, destination: $destination, originPoint: $originPoint, destinationPoint: $destinationPoint, selectedMode: $selectedMode, results: $results, selectedTransitIndex: $selectedTransitIndex, isShowingRoute: $isShowingRoute)';
 }
 
 
@@ -751,7 +755,7 @@ abstract mixin class _$RouteStateCopyWith<$Res> implements $RouteStateCopyWith<$
   factory _$RouteStateCopyWith(_RouteState value, $Res Function(_RouteState) _then) = __$RouteStateCopyWithImpl;
 @override @useResult
 $Res call({
- RouteEndpoint? origin, RouteEndpoint? destination, GeoPoint? originPoint, GeoPoint? destinationPoint, TravelMode selectedMode, Map<TravelMode, ModeResult> results, int selectedTransitIndex
+ RouteEndpoint? origin, RouteEndpoint? destination, GeoPoint? originPoint, GeoPoint? destinationPoint, TravelMode selectedMode, Map<TravelMode, ModeResult> results, int selectedTransitIndex, bool isShowingRoute
 });
 
 
@@ -768,7 +772,7 @@ class __$RouteStateCopyWithImpl<$Res>
 
 /// Create a copy of RouteState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? origin = freezed,Object? destination = freezed,Object? originPoint = freezed,Object? destinationPoint = freezed,Object? selectedMode = null,Object? results = null,Object? selectedTransitIndex = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? origin = freezed,Object? destination = freezed,Object? originPoint = freezed,Object? destinationPoint = freezed,Object? selectedMode = null,Object? results = null,Object? selectedTransitIndex = null,Object? isShowingRoute = null,}) {
   return _then(_RouteState(
 origin: freezed == origin ? _self.origin : origin // ignore: cast_nullable_to_non_nullable
 as RouteEndpoint?,destination: freezed == destination ? _self.destination : destination // ignore: cast_nullable_to_non_nullable
@@ -777,7 +781,8 @@ as GeoPoint?,destinationPoint: freezed == destinationPoint ? _self.destinationPo
 as GeoPoint?,selectedMode: null == selectedMode ? _self.selectedMode : selectedMode // ignore: cast_nullable_to_non_nullable
 as TravelMode,results: null == results ? _self._results : results // ignore: cast_nullable_to_non_nullable
 as Map<TravelMode, ModeResult>,selectedTransitIndex: null == selectedTransitIndex ? _self.selectedTransitIndex : selectedTransitIndex // ignore: cast_nullable_to_non_nullable
-as int,
+as int,isShowingRoute: null == isShowingRoute ? _self.isShowingRoute : isShowingRoute // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

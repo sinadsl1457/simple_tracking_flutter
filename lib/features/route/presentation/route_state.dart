@@ -34,6 +34,9 @@ abstract class RouteState with _$RouteState {
     @Default(TravelMode.transit) TravelMode selectedMode,
     @Default({}) Map<TravelMode, ModeResult> results,
     @Default(0) int selectedTransitIndex,
+
+    /// 목록에서 경로를 골라 지도에 그 경로를 보여 주는 중. false면 경로 목록 단계(지도에 선 없음).
+    @Default(false) bool isShowingRoute,
   }) = _RouteState;
 
   const RouteState._();
@@ -48,8 +51,9 @@ abstract class RouteState with _$RouteState {
     _ => null,
   };
 
-  /// 지도에 그릴 경로. 아직 결과가 없거나 실패했으면 null.
+  /// 지도에 그릴 경로. 목록 단계이거나, 아직 결과가 없거나 실패했으면 null.
   RouteOverlay? get overlay {
+    if (!isShowingRoute) return null;
     final origin = originPoint;
     final end = destinationPoint;
     if (origin == null || end == null) return null;

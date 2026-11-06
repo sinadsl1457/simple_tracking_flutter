@@ -63,7 +63,6 @@ void main() {
               child: CustomScrollView(
                 slivers: transitRouteSlivers(
                   result: ModeResult.transit([route]),
-                  selectedIndex: 0,
                   onSelect: (_) {},
                 ),
               ),

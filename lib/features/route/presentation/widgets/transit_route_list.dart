@@ -1,61 +1,26 @@
-// [route/presentation] 대중교통 결과 하단 시트의 머리글과 경로 후보 목록(구간 막대, 노선 줄).
+// [route/presentation] 대중교통 경로 후보 목록과 한 줄(TransitRouteTile: 시간, 환승·요금, 구간 막대, 노선 줄).
+// 쓰는 곳: route_list_page(목록, 탭하면 지도에 그 경로) · route_summary_card(지도에서 고른 경로 카드)
 
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:simple_tracking/core/presentation/formatters.dart';
 import 'package:simple_tracking/features/route/domain/transit_route.dart';
-import 'package:simple_tracking/features/route/domain/travel_mode.dart';
 import 'package:simple_tracking/features/route/presentation/route_notifier.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/route_display.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/route_summary_card.dart';
 
-/// 대중교통 하단 시트 머리글.
-class TransitRouteListHeader extends StatelessWidget {
-  const TransitRouteListHeader({required this.result, super.key});
-
-  final ModeResult? result;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-      child: Row(
-        children: [
-          Icon(TravelMode.transit.icon, size: 20),
-          const SizedBox(width: 6),
-          Text(TravelMode.transit.title, style: theme.textTheme.titleMedium),
-          if (result case ModeTransit(:final routes)) ...[
-            const SizedBox(width: 6),
-            Text(
-              '경로 ${routes.length}개',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// 대중교통 경로 후보 목록(sliver). 하나를 고르면 지도에 그 경로를 그린다.
+/// 대중교통 경로 후보 목록(sliver). 하나를 고르면 [onSelect]로 그 번호를 알린다.
 List<Widget> transitRouteSlivers({
   required ModeResult? result,
-  required int selectedIndex,
   required ValueChanged<int> onSelect,
 }) => switch (result) {
   ModeTransit(:final routes) => [
     SliverList.separated(
       itemCount: routes.length,
-      separatorBuilder: (_, _) => const Divider(height: 1, indent: 20),
-      itemBuilder: (_, i) => _TransitRouteRow(
-        route: routes[i],
-        isSelected: i == selectedIndex,
-        onTap: () => onSelect(i),
-      ),
+      separatorBuilder: (_, _) => const Divider(height: 8, thickness: 8),
+      itemBuilder: (_, i) =>
+          TransitRouteTile(route: routes[i], onTap: () => onSelect(i)),
     ),
   ],
   ModeFailed(:final failure) => [
@@ -76,16 +41,13 @@ List<Widget> transitRouteSlivers({
   ],
 };
 
-class _TransitRouteRow extends StatelessWidget {
-  const _TransitRouteRow({
-    required this.route,
-    required this.isSelected,
-    required this.onTap,
-  });
+/// 대중교통 경로 하나: 소요 시간·도착 시각, 환승·요금·거리, 구간 막대, 탈 노선들.
+/// [onTap]이 없으면 누를 수 없는 카드 본문으로 쓴다(지도에서 고른 경로).
+class TransitRouteTile extends StatelessWidget {
+  const TransitRouteTile({required this.route, this.onTap, super.key});
 
   final TransitRoute route;
-  final bool isSelected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   String get _detailLine => [
     if (route.transfers == 0) '환승 없음' else '환승 ${route.transfers}회',
@@ -96,25 +58,18 @@ class _TransitRouteRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
     final secondary = theme.colorScheme.onSurfaceVariant;
     return InkWell(
       onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: isSelected ? primary.withValues(alpha: 0.08) : null,
-          border: isSelected
-              ? Border(left: BorderSide(color: primary, width: 3))
-              : null,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text.rich(
               TextSpan(
                 text: durationText(route.durationSeconds),
-                style: theme.textTheme.titleLarge?.copyWith(
+                style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
                 children: [
