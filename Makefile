@@ -3,6 +3,8 @@
 #   make run              iPhone 18 Pro 시뮬레이터
 #   make run-android      Android 에뮬레이터(먼저 켜 둘 것)
 #   make run-device       내 아이폰 실기기(USB 또는 무선 연결)
+#   make run-device-profile  내 아이폰에 profile 빌드 + 실제 GPS. 실기기 동작·시연 확인용
+#                         (실기기 debug 빌드는 지도 화면에서 수십 초씩 멈출 수 있음 — 핫 리로드가 필요할 때만 debug)
 #   make run DEVICE=<id>  다른 기기
 #   make run-gps / make run-android-gps / make run-device-gps
 #                         env의 FIXED_LOCATION을 비워 실제 GPS로 실행(시뮬레이터는 가상 위치를 따로 넣어야 함)
@@ -15,7 +17,7 @@ ENV ?= env/dev.json
 # --dart-define은 파일 값보다 나중에 적용되어 같은 키를 덮어쓴다.
 GPS_DEFINE = --dart-define=FIXED_LOCATION=
 
-.PHONY: run run-android run-device run-gps run-android-gps run-device-gps
+.PHONY: run run-android run-device run-gps run-android-gps run-device-gps run-device-profile
 
 run:
 	flutter run -d "$(DEVICE)" --dart-define-from-file=$(ENV)
@@ -34,3 +36,6 @@ run-android-gps:
 
 run-device-gps:
 	flutter run -d $(MY_DEVICE) --dart-define-from-file=$(ENV) $(GPS_DEFINE)
+
+run-device-profile:
+	flutter run --profile -d $(MY_DEVICE) --dart-define-from-file=$(ENV) $(GPS_DEFINE)
