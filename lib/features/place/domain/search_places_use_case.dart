@@ -1,5 +1,5 @@
 // [place/domain] 키워드 검색: 공백 정리 → 빈 검색어면 API를 부르지 않고 emptyQuery.
-// 사용처: PlaceSearchNotifier, EndpointSearchCubit
+// 사용처: PlaceSearchNotifier, EndpointSearchNotifier
 
 import 'package:injectable/injectable.dart';
 import 'package:simple_tracking/core/error/failure.dart';

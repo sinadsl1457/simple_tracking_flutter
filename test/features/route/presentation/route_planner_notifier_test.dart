@@ -1,9 +1,11 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:simple_tracking/features/place/data/place_providers.dart';
 import 'package:simple_tracking/features/place/domain/recent_place.dart';
 import 'package:simple_tracking/features/place/domain/recent_places_use_case.dart';
 import 'package:simple_tracking/features/route/domain/route_endpoint.dart';
 import 'package:simple_tracking/features/route/domain/travel_mode.dart';
-import 'package:simple_tracking/features/route/presentation/cubit/route_planner_cubit.dart';
+import 'package:simple_tracking/features/route/presentation/route_planner_notifier.dart';
 
 import '../../../fakes/async.dart';
 import '../../../fakes/fake_repositories.dart';
@@ -15,34 +17,44 @@ void main() {
   late List<RoutePlannerEffect> effects;
   late FakeRecentPlaceRepository recents;
 
-  RoutePlannerCubit makeCubit() {
+  late ProviderContainer container;
+
+  RoutePlannerNotifier makeNotifier() {
     recents = FakeRecentPlaceRepository([
       RecentPlace(place: cafe, usedAt: DateTime(2026, 10, 18)),
       RecentPlace(place: station, usedAt: DateTime(2026, 10, 17)),
     ]);
-    final cubit = RoutePlannerCubit(RecentPlacesUseCase(recents));
+    container = ProviderContainer.test(
+      overrides: [
+        recentPlacesUseCaseProvider.overrideWithValue(
+          RecentPlacesUseCase(recents),
+        ),
+      ],
+    )..listen(routePlannerProvider, (_, _) {});
+    final notifier = container.read(routePlannerProvider.notifier);
     effects = [];
-    cubit.effects.listen(effects.add);
-    addTearDown(cubit.close);
-    return cubit;
+    notifier.effects.listen(effects.add);
+    return notifier;
   }
 
+  RoutePlannerState state() => container.read(routePlannerProvider);
+
   test('출발지는 내 위치, 도착지는 비어 있고 최근 장소를 불러온다', () async {
-    final cubit = makeCubit();
+    final notifier = makeNotifier();
 
-    await cubit.onAppear(mode: TravelMode.car);
+    await notifier.onAppear(mode: TravelMode.car);
 
-    expect(cubit.state.origin, const RouteEndpoint.myLocation());
-    expect(cubit.state.destination, isNull);
-    expect(cubit.state.mode, TravelMode.car);
-    expect(cubit.state.recentPlaces.map((r) => r.place), [cafe, station]);
+    expect(state().origin, const RouteEndpoint.myLocation());
+    expect(state().destination, isNull);
+    expect(state().mode, TravelMode.car);
+    expect(state().recentPlaces.map((r) => r.place), [cafe, station]);
   });
 
   test('최근 장소를 누르면 도착지가 되고 바로 길찾기로 넘어간다', () async {
-    final cubit = makeCubit();
-    await cubit.onAppear(mode: TravelMode.walk);
+    final notifier = makeNotifier();
+    await notifier.onAppear(mode: TravelMode.walk);
 
-    cubit.chooseRecent(cubit.state.recentPlaces[1]);
+    notifier.chooseRecent(state().recentPlaces[1]);
     await flush();
 
     expect(effects, [
@@ -59,16 +71,16 @@ void main() {
   });
 
   test('도착지가 비었을 때 맞바꾸면 출발지가 비고 넘어가지 않는다', () async {
-    final cubit = makeCubit()..swap();
+    makeNotifier().swap();
     await flush();
 
-    expect(cubit.state.origin, isNull);
-    expect(cubit.state.destination, const RouteEndpoint.myLocation());
+    expect(state().origin, isNull);
+    expect(state().destination, const RouteEndpoint.myLocation());
     expect(effects, isEmpty);
   });
 
   test('비어 있는 출발지를 채우면 넘어간다', () async {
-    makeCubit()
+    makeNotifier()
       ..swap()
       ..setOrigin(RouteEndpoint.place(cafe));
     await flush();
@@ -79,11 +91,11 @@ void main() {
   });
 
   test('최근 장소 삭제', () async {
-    final cubit = makeCubit();
-    await cubit.onAppear(mode: TravelMode.transit);
+    final notifier = makeNotifier();
+    await notifier.onAppear(mode: TravelMode.transit);
 
-    await cubit.removeRecent('cafe');
+    await notifier.removeRecent('cafe');
 
-    expect(cubit.state.recentPlaces.map((r) => r.place), [station]);
+    expect(state().recentPlaces.map((r) => r.place), [station]);
   });
 }

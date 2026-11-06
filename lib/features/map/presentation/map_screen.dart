@@ -1,11 +1,10 @@
-// [map/presentation] 지도 화면 = 앱의 메인 화면. 내 위치·검색(Riverpod Notifier)과 길찾기(Cubit)를 지도와 UI에 연결한다.
-// 지도 반영 통로: 상태 변화는 ref.listen·BlocListener, 일회성 이벤트는 EffectListener(docs/ARCHITECTURE.md 4-3).
+// [map/presentation] 지도 화면 = 앱의 메인 화면. 내 위치·검색·길찾기(Riverpod Notifier)를 지도와 UI에 연결한다.
+// 지도 반영 통로: 상태 변화는 ref.listen, 일회성 이벤트는 EffectListener(docs/ARCHITECTURE.md 4-3).
 // 파일 순서: 지도 명령 → 사용자 동작 → effect 처리 → 화면 구성
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kakao_map_view/kakao_map_view.dart';
@@ -27,9 +26,9 @@ import 'package:simple_tracking/features/place/presentation/widgets/place_result
 import 'package:simple_tracking/features/place/presentation/widgets/search_page.dart';
 import 'package:simple_tracking/features/route/domain/route_endpoint.dart';
 import 'package:simple_tracking/features/route/domain/travel_mode.dart';
-import 'package:simple_tracking/features/route/presentation/cubit/route_cubit.dart';
-import 'package:simple_tracking/features/route/presentation/cubit/route_planner_cubit.dart';
 import 'package:simple_tracking/features/route/presentation/endpoint_picker_page.dart';
+import 'package:simple_tracking/features/route/presentation/route_notifier.dart';
+import 'package:simple_tracking/features/route/presentation/route_planner_notifier.dart';
 import 'package:simple_tracking/features/route/presentation/route_planner_page.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/route_endpoint_display.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/route_header.dart';
@@ -81,7 +80,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   MapState get _mapState => ref.read(mapProvider);
   PlaceSearchNotifier get _search => ref.read(placeSearchProvider.notifier);
   PlaceSearchState get _searchState => ref.read(placeSearchProvider);
-  RouteCubit get _route => context.read<RouteCubit>();
+  RouteNotifier get _route => ref.read(routeProvider.notifier);
+  RouteState get _routeState => ref.read(routeProvider);
 
   @override
   void initState() {
@@ -123,7 +123,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     unawaited(map.updateMyLocation(_mapState.myLocation?.toMyLocation()));
     unawaited(map.setFollowMode(_mapState.followMode.toMapFollowMode()));
     _syncPlaceMarkers();
-    unawaited(map.showRoute(_route.state.overlay));
+    unawaited(map.showRoute(_routeState.overlay));
     if (_pendingCamera case final command?) unawaited(command(map));
     _pendingCamera = null;
     setState(() => _mapError = null);
@@ -153,7 +153,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     if (map == null) return;
     final search = _searchState;
     unawaited(
-      _route.state.isActive
+      _routeState.isActive
           ? map.showPlaceMarkers(const [])
           : map.showPlaceMarkers(
               placeMarkers(search.places),
@@ -212,7 +212,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       RoutePlannerPage.path,
       extra: RoutePlannerArgs(
         myLocation: _mapState.myLocation?.point,
-        mode: _route.state.selectedMode,
+        mode: _routeState.selectedMode,
       ),
     );
     if (plan == null || !mounted) return;
@@ -291,14 +291,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         SearchFailureEffect(:final failure) => _showToast(failure.userMessage),
       };
 
-  /// RouteCubit effect → 경로에 카메라 맞추기(대중교통은 큰 시트를 고려), 오류 토스트.
+  /// RouteNotifier effect → 경로에 카메라 맞추기(대중교통은 큰 시트를 고려), 오류 토스트.
   void _onRouteEffect(BuildContext context, RouteEffect effect) {
     switch (effect) {
       case FitRouteEffect(:final points):
         _cameraAwayFromMe(
           () => _fitCamera(
             points,
-            _route.state.selectedMode == TravelMode.transit
+            _routeState.selectedMode == TravelMode.transit
                 ? MapFitLayout.routeWithSheet
                 : MapFitLayout.route,
           ),
@@ -317,7 +317,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Widget build(BuildContext context) {
     if (AppConfig.kakaoNativeAppKey.isEmpty) return const _MissingKeyNotice();
 
-    // 상태 → 지도 반영. Notifier·Cubit은 지도를 모르고, 여기서만 지도 명령으로 바꾼다.
+    // 상태 → 지도 반영. Notifier는 지도를 모르고, 여기서만 지도 명령으로 바꾼다.
     // ref.listen은 build 안에서 부르면 Riverpod이 한 번만 등록한다(BlocListener의 Riverpod 판).
     // 내 위치가 바뀌면 지도 위 파란 점을 옮긴다.
     ref
@@ -350,36 +350,29 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         if (source != null) {
           setState(() => _placeSheetDetent = SheetDetent.medium);
         }
-      });
-    return MultiBlocListener(
-      listeners: [
-        // 길찾기 중에는 검색 핀을 숨긴다(출발·도착 말풍선만 보이게).
-        BlocListener<RouteCubit, RouteState>(
-          listenWhen: (a, b) => a.isActive != b.isActive,
-          listener: (_, s) {
-            // 경로에 맞춰 줌 아웃하기 전에 지금 카메라를 기억해 둔다(_closeRoute에서 복원).
-            if (s.isActive) _cameraBeforeRoute = _cameraPosition;
-            _syncPlaceMarkers();
-          },
-        ),
-        // 경로(선택한 수단·대중교통 후보)가 바뀌면 지도 선을 다시 그린다.
-        BlocListener<RouteCubit, RouteState>(
-          listenWhen: (a, b) => a.overlay != b.overlay,
-          listener: (_, s) => unawaited(_map?.showRoute(s.overlay)),
-        ),
-      ],
-      // Cubit 일회성 이벤트 → 지도 카메라·토스트·대화상자.
-      child: EffectListener<MapEffect>(
-        effects: _myLocation.effects,
-        onEffect: _onMapEffect,
-        child: EffectListener<PlaceSearchEffect>(
-          effects: _search.effects,
-          onEffect: _onSearchEffect,
-          child: EffectListener<RouteEffect>(
-            effects: _route.effects,
-            onEffect: _onRouteEffect,
-            child: _buildBody(context),
-          ),
+      })
+      // 길찾기 중에는 검색 핀을 숨긴다(출발·도착 말풍선만 보이게).
+      ..listen(routeProvider.select((s) => s.isActive), (_, isActive) {
+        // 경로에 맞춰 줌 아웃하기 전에 지금 카메라를 기억해 둔다(_closeRoute에서 복원).
+        if (isActive) _cameraBeforeRoute = _cameraPosition;
+        _syncPlaceMarkers();
+      })
+      // 경로(선택한 수단·대중교통 후보)가 바뀌면 지도 선을 다시 그린다.
+      ..listen(
+        routeProvider.select((s) => s.overlay),
+        (_, overlay) => unawaited(_map?.showRoute(overlay)),
+      );
+    // Notifier 일회성 이벤트 → 지도 카메라·토스트·대화상자.
+    return EffectListener<MapEffect>(
+      effects: _myLocation.effects,
+      onEffect: _onMapEffect,
+      child: EffectListener<PlaceSearchEffect>(
+        effects: _search.effects,
+        onEffect: _onSearchEffect,
+        child: EffectListener<RouteEffect>(
+          effects: _route.effects,
+          onEffect: _onRouteEffect,
+          child: _buildBody(context),
         ),
       ),
     );
@@ -390,7 +383,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Widget _buildBody(BuildContext context) {
     final mapState = ref.watch(mapProvider);
     final search = ref.watch(placeSearchProvider);
-    final route = context.watch<RouteCubit>().state;
+    final route = ref.watch(routeProvider);
 
     final padding = MediaQuery.paddingOf(context);
     final isPlaceSheetVisible = search.source != null && !route.isActive;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:simple_tracking/features/route/domain/transit_route.dart';
-import 'package:simple_tracking/features/route/presentation/cubit/route_cubit.dart';
+import 'package:simple_tracking/features/route/presentation/route_notifier.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/transit_route_list.dart';
 
 import '../../../fakes/fixtures.dart';

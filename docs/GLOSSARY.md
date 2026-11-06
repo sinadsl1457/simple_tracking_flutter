@@ -9,7 +9,7 @@
 | 키워드 | 뜻 | 어디서 쓰나 |
 |---|---|---|
 | `@InjectableInit()` | 이 함수에 대한 등록 코드(`injection.config.dart`)를 생성하라는 표시 | `core/di/injection.dart` |
-| `@injectable` | 요청할 때마다 **새로 만드는** 등록(factory). Cubit, UseCase | `route_cubit.dart` |
+| `@injectable` | 요청할 때마다 **새로 만드는** 등록(factory). Cubit, UseCase | `find_route_use_cases.dart` |
 | `@lazySingleton` | **처음 요청할 때 한 번** 만들고 계속 재사용 | `kakao_place_api.dart` |
 | `@LazySingleton(as: X)` | 이 구현 클래스를 **인터페이스 X 자리에** 등록. 다른 곳은 X만 알면 된다 | `place_repository_impl.dart` (`as: PlaceRepository`) |
 | `@module` | "이 타입을 어떻게 만들지" 생성 로직을 직접 쓰는 곳. ① 남의 클래스라 어노테이션을 못 붙일 때(Dio, SharedPreferences) ② 생성자 인자가 설정·계산값일 때 ③ 조건에 따라 구현을 골라야 할 때 | `register_module.dart`(①), `location_module.dart`(②③) |
@@ -54,8 +54,8 @@
 | `async*` / `yield` / `yield*` | Stream을 함수처럼 작성. `yield*`는 다른 스트림을 이어 붙임 | **끝나지 않는 await를 넣으면 `cancel()`도 끝나지 않는다** → 열린 스트림은 `StreamController` (`fixed_location_repository.dart`) |
 | `unawaited(f)` | "일부러 기다리지 않음"을 표시. lint(`discarded_futures`)가 실수로 안 기다린 것과 구분 | 위젯 콜백에서 Cubit 호출 |
 | single-subscription `StreamController()` | 구독자 1명. **구독 전 이벤트를 버퍼에 보관** → Swift `AsyncStream`과 같은 성질 | `EffectEmitter` |
-| `Future.wait([...])` + `.then` | 여러 요청을 동시에 보내고, 각각 도착하는 대로 처리 | `RouteCubit._search` |
-| 세대 번호(`_generation`) | 늦게 도착한 **이전** 요청 결과를 버리는 방법 | `PlaceSearchNotifier`, `RouteCubit` |
+| `Future.wait([...])` + `.then` | 여러 요청을 동시에 보내고, 각각 도착하는 대로 처리 | `RouteNotifier._search` |
+| 세대 번호(`_generation`) | 늦게 도착한 **이전** 요청 결과를 버리는 방법 | `PlaceSearchNotifier`, `RouteNotifier` |
 
 ## 5. Flutter 위젯·API
 
@@ -66,7 +66,7 @@
 | `AppLifecycleListener` | 앱 포그라운드/백그라운드 콜백 (SwiftUI `scenePhase` 대응) | `map_screen.dart` |
 | `DraggableScrollableSheet` | 끌어서 높이를 바꾸는 시트. `snapSizes`는 반드시 const (객체 동일성 비교) | `map_bottom_sheet.dart` |
 | `CustomScrollView` + `SliverList` / `SliverToBoxAdapter` | 시트 안에 머리글+목록을 한 스크롤로 | 같은 파일 |
-| `MultiBlocListener` + `listenWhen` | 상태의 **특정 필드가 바뀔 때만** 반응 | `map_screen.dart` |
+| `ref.listen(p.select(...))` | 상태의 **특정 필드가 바뀔 때만** 반응(BlocListener `listenWhen`의 Riverpod 판) | `map_screen.dart` |
 | `context.push<T>()` / `context.pop(value)` | go_router: 화면을 띄우고 **결과 값을 돌려받기** | `RoutePlannerPage` → `RoutePlan` |
 | `@visibleForTesting` | 테스트용으로만 공개한다는 표시 | `segmentWidths` |
 | `tester.timedDrag` | 프레임 사이사이에 움직이는 드래그. `tester.drag`는 프레임 없이 한 번에 보내 실제와 다를 수 있다 | `map_bottom_sheet_test.dart` |

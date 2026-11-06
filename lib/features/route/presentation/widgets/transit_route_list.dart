@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:simple_tracking/core/presentation/formatters.dart';
 import 'package:simple_tracking/features/route/domain/transit_route.dart';
 import 'package:simple_tracking/features/route/domain/travel_mode.dart';
-import 'package:simple_tracking/features/route/presentation/cubit/route_cubit.dart';
+import 'package:simple_tracking/features/route/presentation/route_notifier.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/route_display.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/route_summary_card.dart';
 

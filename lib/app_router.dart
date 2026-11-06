@@ -1,18 +1,12 @@
-// [앱 셸] go_router 라우트 표. 화면(경로)과 그 화면이 쓸 Cubit(BlocProvider)을 여기서만 만든다.
-// Riverpod으로 옮긴 상태(MapNotifier·PlaceSearchNotifier)는 화면이 처음 읽을 때 생기고
-// 떠나면 정리돼서 여기서 만들지 않는다.
-// 규칙: 위젯 안에서 getIt을 부르지 않는다. 화면 이동은 경로 상수(XxxPage.path)로 context.go/push.
+// [앱 셸] go_router 라우트 표. 화면(경로)만 선언한다.
+// 화면 상태(Riverpod Notifier: 지도·검색·길찾기)는 화면이 처음 읽을 때 생기고 떠나면 정리돼서 여기서 만들지 않는다.
+// 규칙: 화면 이동은 경로 상수(XxxPage.path)로 context.go/push.
 // 라우트: / (지도, ?q=검색어) · /route-planner (길찾기 준비) · /endpoint (출발지·도착지 선택)
 // 쓰는 곳: app.dart(MaterialApp.router), 푸시 탭 이동(pushDestinationLocation).
 
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:simple_tracking/core/di/injection.dart';
 import 'package:simple_tracking/features/map/presentation/map_screen.dart';
 import 'package:simple_tracking/features/push/domain/push_message.dart';
-import 'package:simple_tracking/features/route/presentation/cubit/endpoint_search_cubit.dart';
-import 'package:simple_tracking/features/route/presentation/cubit/route_cubit.dart';
-import 'package:simple_tracking/features/route/presentation/cubit/route_planner_cubit.dart';
 import 'package:simple_tracking/features/route/presentation/endpoint_picker_page.dart';
 import 'package:simple_tracking/features/route/presentation/route_planner_page.dart';
 
@@ -20,26 +14,19 @@ final appRouter = GoRouter(
   routes: [
     GoRoute(
       path: '/',
-      builder: (context, state) => BlocProvider(
-        create: (_) => getIt<RouteCubit>(),
-        child: MapScreen(
-          searchQuery: state.uri.queryParameters[MapScreen.searchQueryParam],
-        ),
+      builder: (context, state) => MapScreen(
+        searchQuery: state.uri.queryParameters[MapScreen.searchQueryParam],
       ),
     ),
     GoRoute(
       path: RoutePlannerPage.path,
-      builder: (context, state) => BlocProvider(
-        create: (_) => getIt<RoutePlannerCubit>(),
-        child: RoutePlannerPage(args: state.extra! as RoutePlannerArgs),
-      ),
+      builder: (context, state) =>
+          RoutePlannerPage(args: state.extra! as RoutePlannerArgs),
     ),
     GoRoute(
       path: EndpointPickerPage.path,
-      builder: (context, state) => BlocProvider(
-        create: (_) => getIt<EndpointSearchCubit>(),
-        child: EndpointPickerPage(args: state.extra! as EndpointPickerArgs),
-      ),
+      builder: (context, state) =>
+          EndpointPickerPage(args: state.extra! as EndpointPickerArgs),
     ),
   ],
 );

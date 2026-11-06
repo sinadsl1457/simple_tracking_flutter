@@ -1,4 +1,4 @@
-// [route/presentation] RoutePlannerCubit의 상태(State)와 일회성 effect 모델. 로직은 route_planner_cubit.dart.
+// [route/presentation] RoutePlannerNotifier의 상태(State)와 일회성 effect 모델. 로직은 route_planner_notifier.dart.
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:simple_tracking/features/place/domain/recent_place.dart';

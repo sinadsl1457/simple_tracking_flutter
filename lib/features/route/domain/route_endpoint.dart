@@ -1,4 +1,4 @@
-// [route/domain] 길찾기 출발지·도착지 = 내 위치 | 장소. 내 위치 좌표는 조회 시점에 정한다(RouteCubit._search).
+// [route/domain] 길찾기 출발지·도착지 = 내 위치 | 장소. 내 위치 좌표는 조회 시점에 정한다(RouteNotifier._search).
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:simple_tracking/features/place/domain/place.dart';

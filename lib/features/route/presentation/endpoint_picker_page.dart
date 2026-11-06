@@ -4,7 +4,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:simple_tracking/core/geo/geo_point.dart';
 import 'package:simple_tracking/core/presentation/formatters.dart';
@@ -12,7 +12,7 @@ import 'package:simple_tracking/core/presentation/widgets/effect_listener.dart';
 import 'package:simple_tracking/features/place/domain/place.dart';
 import 'package:simple_tracking/features/place/presentation/widgets/search_widgets.dart';
 import 'package:simple_tracking/features/route/domain/route_endpoint.dart';
-import 'package:simple_tracking/features/route/presentation/cubit/endpoint_search_cubit.dart';
+import 'package:simple_tracking/features/route/presentation/endpoint_search_notifier.dart';
 
 /// 출발지·도착지 선택 페이지에 넘기는 값.
 class EndpointPickerArgs {
@@ -26,7 +26,7 @@ class EndpointPickerArgs {
 }
 
 /// 길찾기 출발지·도착지를 고르는 페이지. 고른 지점을 [RouteEndpoint]로 돌려준다.
-class EndpointPickerPage extends StatefulWidget {
+class EndpointPickerPage extends ConsumerStatefulWidget {
   const EndpointPickerPage({required this.args, super.key});
 
   static const path = '/endpoint';
@@ -34,19 +34,20 @@ class EndpointPickerPage extends StatefulWidget {
   final EndpointPickerArgs args;
 
   @override
-  State<EndpointPickerPage> createState() => _EndpointPickerPageState();
+  ConsumerState<EndpointPickerPage> createState() => _EndpointPickerPageState();
 }
 
-class _EndpointPickerPageState extends State<EndpointPickerPage> {
+class _EndpointPickerPageState extends ConsumerState<EndpointPickerPage> {
   final _text = TextEditingController();
 
-  EndpointSearchCubit get _cubit => context.read<EndpointSearchCubit>();
+  EndpointSearchNotifier get _search =>
+      ref.read(endpointSearchProvider.notifier);
   GeoPoint? get _myLocation => widget.args.myLocation;
 
   @override
   void initState() {
     super.initState();
-    unawaited(_cubit.onAppear());
+    unawaited(_search.onAppear());
   }
 
   @override
@@ -59,19 +60,20 @@ class _EndpointPickerPageState extends State<EndpointPickerPage> {
 
   /// 고른 장소는 길찾기 화면의 "최근 장소"에 남긴다.
   void _choosePlace(Place place) {
-    unawaited(_cubit.remember(place));
+    unawaited(_search.remember(place));
     _choose(RouteEndpoint.place(place));
   }
 
   void _searchRecent(String recent) {
     _text.text = recent;
-    unawaited(_cubit.searchRecent(recent, center: _myLocation));
+    unawaited(_search.searchRecent(recent, center: _myLocation));
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(endpointSearchProvider);
     return EffectListener<EndpointSearchEffect>(
-      effects: _cubit.effects,
+      effects: _search.effects,
       onEffect: (context, effect) => switch (effect) {
         EndpointSearchFailureEffect(:final failure) => ScaffoldMessenger.of(
           context,
@@ -80,53 +82,51 @@ class _EndpointPickerPageState extends State<EndpointPickerPage> {
       child: Scaffold(
         body: SafeArea(
           bottom: false,
-          child: BlocBuilder<EndpointSearchCubit, EndpointSearchState>(
-            builder: (context, state) => Column(
-              children: [
-                SearchFieldBar(
-                  controller: _text,
-                  isSubmitting: state.isSubmitting,
-                  hintText: '${widget.args.title} — 장소, 주소 검색',
-                  onBack: context.pop,
-                  onChanged: _cubit.onQueryChanged,
-                  onSubmitted: () =>
-                      unawaited(_cubit.submit(center: _myLocation)),
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  child: ListView(
-                    keyboardDismissBehavior:
-                        ScrollViewKeyboardDismissBehavior.onDrag,
-                    children: [
-                      ListTile(
-                        leading: Icon(
-                          Icons.my_location,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        title: const Text('내 위치'),
-                        onTap: () => _choose(const RouteEndpoint.myLocation()),
+          child: Column(
+            children: [
+              SearchFieldBar(
+                controller: _text,
+                isSubmitting: state.isSubmitting,
+                hintText: '${widget.args.title} — 장소, 주소 검색',
+                onBack: context.pop,
+                onChanged: _search.onQueryChanged,
+                onSubmitted: () =>
+                    unawaited(_search.submit(center: _myLocation)),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  children: [
+                    ListTile(
+                      leading: Icon(
+                        Icons.my_location,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
-                      const Divider(height: 1),
-                      ...switch (state.results) {
-                        null => _recents(context, state.recentQueries),
-                        [] => [const _EmptyText('검색 결과가 없어요')],
-                        final places => [
-                          for (final place in places)
-                            _PlaceTile(
-                              place: place,
-                              distance: distanceBetween(
-                                _myLocation,
-                                place.location,
-                              ),
-                              onTap: () => _choosePlace(place),
+                      title: const Text('내 위치'),
+                      onTap: () => _choose(const RouteEndpoint.myLocation()),
+                    ),
+                    const Divider(height: 1),
+                    ...switch (state.results) {
+                      null => _recents(context, state.recentQueries),
+                      [] => [const _EmptyText('검색 결과가 없어요')],
+                      final places => [
+                        for (final place in places)
+                          _PlaceTile(
+                            place: place,
+                            distance: distanceBetween(
+                              _myLocation,
+                              place.location,
                             ),
-                        ],
-                      },
-                    ],
-                  ),
+                            onTap: () => _choosePlace(place),
+                          ),
+                      ],
+                    },
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -150,7 +150,7 @@ class _EndpointPickerPageState extends State<EndpointPickerPage> {
         RecentQueryTile(
           query: recent,
           onTap: () => _searchRecent(recent),
-          onRemove: () => unawaited(_cubit.removeRecent(recent)),
+          onRemove: () => unawaited(_search.removeRecent(recent)),
         ),
     ];
   }

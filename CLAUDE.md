@@ -5,8 +5,11 @@
 ## 스택
 - 상태관리: **Riverpod으로 옮기는 중(`riverpod` 브랜치).** 옮긴 기능은 Riverpod(`@riverpod` Notifier, riverpod_generator),
   아직 안 옮긴 기능은 flutter_bloc(Cubit). 한 기능 안에서 둘을 섞지 않는다. 다 옮기면 flutter_bloc·get_it을 뺀다.
-  - 지금 Riverpod: 위치(location_providers), 지도(MapNotifier), 장소 검색(PlaceSearchNotifier). 길찾기·푸시는 Cubit.
-  - 장소 UseCase는 길찾기(Cubit)와 같이 써서 place_providers가 get_it에서 꺼내 온다(길찾기를 옮기면 정리).
+  - 지금 Riverpod: 위치(location_providers), 지도(MapNotifier), 장소 검색(PlaceSearchNotifier),
+    길찾기(RouteNotifier·RoutePlannerNotifier·EndpointSearchNotifier). 푸시만 Cubit.
+  - 저장소·API·Dio가 아직 get_it에 있어 place_providers·route_providers는 UseCase를 get_it에서 꺼내 온다.
+    푸시를 옮길 때 저장소·API를 provider로 직접 만들고 get_it을 뺀다.
+  - 길찾기 Notifier 셋은 화면마다 따로 산다(autoDispose): 결과=지도 화면, 준비=준비 화면, 검색=선택 페이지.
 - Riverpod 규칙: 상태 클래스는 `XxxNotifier`(파일 `xxx_notifier.dart`) + `xxx_state.dart`(freezed).
   의존성은 provider로 주입(`ref.watch(xxxProvider)`), 테스트는 `ProviderContainer.test(overrides: ...)`.
   화면에 붙은 상태는 autoDispose(기본값), 앱 수명 객체(저장소)는 `@Riverpod(keepAlive: true)`.

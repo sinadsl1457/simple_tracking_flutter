@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:simple_tracking/core/presentation/formatters.dart';
 import 'package:simple_tracking/features/route/domain/travel_mode.dart';
-import 'package:simple_tracking/features/route/presentation/cubit/route_cubit.dart';
+import 'package:simple_tracking/features/route/presentation/route_notifier.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/route_display.dart';
 
 /// 길찾기 상단의 이동 수단 탭. 탭마다 소요 시간을 미리 보여준다.

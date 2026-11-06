@@ -50,12 +50,6 @@ import 'package:simple_tracking/features/route/domain/find_route_use_cases.dart'
     as _i621;
 import 'package:simple_tracking/features/route/domain/route_repository.dart'
     as _i1013;
-import 'package:simple_tracking/features/route/presentation/cubit/endpoint_search_cubit.dart'
-    as _i645;
-import 'package:simple_tracking/features/route/presentation/cubit/route_cubit.dart'
-    as _i74;
-import 'package:simple_tracking/features/route/presentation/cubit/route_planner_cubit.dart'
-    as _i175;
 
 extension GetItInjectableX on _i174.GetIt {
   // initializes the registration of main-scope dependencies inside of GetIt
@@ -116,23 +110,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i940.RecentPlacesUseCase>(
       () => _i940.RecentPlacesUseCase(gh<_i673.RecentPlaceRepository>()),
-    );
-    gh.factory<_i645.EndpointSearchCubit>(
-      () => _i645.EndpointSearchCubit(
-        gh<_i48.SearchPlacesUseCase>(),
-        gh<_i1047.RecentSearchesUseCase>(),
-        gh<_i940.RecentPlacesUseCase>(),
-      ),
-    );
-    gh.factory<_i74.RouteCubit>(
-      () => _i74.RouteCubit(
-        gh<_i621.FindCarRouteUseCase>(),
-        gh<_i621.FindWalkingRouteUseCase>(),
-        gh<_i621.FindTransitRoutesUseCase>(),
-      ),
-    );
-    gh.factory<_i175.RoutePlannerCubit>(
-      () => _i175.RoutePlannerCubit(gh<_i940.RecentPlacesUseCase>()),
     );
     return this;
   }

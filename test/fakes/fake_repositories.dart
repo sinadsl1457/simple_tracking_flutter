@@ -105,7 +105,11 @@ class FakeRouteRepository implements RouteRepository {
     this.route,
     Result<RoutePath>? walk,
     this.transit = const Result.ok([]),
+    this.gate,
   }) : walk = walk ?? _orUnknown(route);
+
+  /// 있으면 세 응답 모두 이것이 끝날 때까지 늦게 도착한다(화면이 닫힌 뒤 도착하는 응답 흉내).
+  final Future<void>? gate;
 
   final RoutePath? route;
   final Result<RoutePath> walk;
@@ -121,12 +125,14 @@ class FakeRouteRepository implements RouteRepository {
   Future<Result<RoutePath>> findCarRoute(GeoPoint o, GeoPoint d) async {
     carCallCount++;
     lastCarRequest = (origin: o, destination: d);
+    await gate;
     return _orUnknown(route);
   }
 
   @override
   Future<Result<RoutePath>> findWalkingRoute(GeoPoint o, GeoPoint d) async {
     walkCallCount++;
+    await gate;
     return walk;
   }
 
@@ -136,6 +142,7 @@ class FakeRouteRepository implements RouteRepository {
     GeoPoint d,
   ) async {
     transitCallCount++;
+    await gate;
     return transit;
   }
 

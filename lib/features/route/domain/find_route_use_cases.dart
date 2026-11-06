@@ -1,5 +1,5 @@
 // [route/domain] 이동 수단별 길찾기 UseCase. 공통 규칙: 20m보다 가까우면 API를 부르지 않는다.
-// 대중교통은 빠른 순 정렬, 결과가 없으면 routeNotFound. 사용처: RouteCubit
+// 대중교통은 빠른 순 정렬, 결과가 없으면 routeNotFound. 사용처: RouteNotifier
 
 import 'package:injectable/injectable.dart';
 import 'package:simple_tracking/core/error/failure.dart';

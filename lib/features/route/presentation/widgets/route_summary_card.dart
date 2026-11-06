@@ -5,7 +5,7 @@ import 'package:simple_tracking/core/error/failure.dart';
 import 'package:simple_tracking/core/presentation/formatters.dart';
 import 'package:simple_tracking/features/route/domain/route_path.dart';
 import 'package:simple_tracking/features/route/domain/travel_mode.dart';
-import 'package:simple_tracking/features/route/presentation/cubit/route_cubit.dart';
+import 'package:simple_tracking/features/route/presentation/route_notifier.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/route_display.dart';
 
 /// 자동차·도보 길찾기 하단 카드: 예상 시간, 거리, 도착 예정 시각.

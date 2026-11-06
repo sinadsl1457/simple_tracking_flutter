@@ -11,14 +11,14 @@
 ```
 lib/
 ├ main.dart / app.dart          시작점, MaterialApp, 앱 전체 Cubit(PushCubit)
-├ app_router.dart               라우트 표(go_router), 화면별 Cubit 생성(BlocProvider)
+├ app_router.dart               라우트 표(go_router). 화면 상태(Notifier)는 화면이 읽을 때 생긴다
 ├ core/                         기능과 무관한 공통 코드
 │  ├ config/   app_config       --dart-define 값(카카오 키, 고정 위치, 푸시 켜기)
 │  ├ di/       injection        get_it + injectable 설정 (Dio, SharedPreferences 등록)
 │  ├ error/    failure, result  모든 실패 종류(sealed)와 Ok/Err 결과 타입
 │  ├ geo/      geo_point, math  좌표와 거리 계산
 │  ├ network/  safe_api_call    HTTP 오류 → Failure 변환, 카카오 인증 헤더
-│  └ presentation/              EffectEmitter(일회성 이벤트), 하단 시트, 토스트, 포맷터
+│  └ presentation/              EffectChannel·EffectEmitter(일회성 이벤트), 하단 시트, 토스트, 포맷터
 └ features/                     기능별. 각 기능 안에 domain / data / presentation
    ├ location/   내 위치 (GPS: geolocator / FIXED_LOCATION이 있으면 고정 좌표)
    ├ place/      장소 검색(입력 중 실시간 미리보기), 최근 검색어, 최근 장소
@@ -37,7 +37,7 @@ packages/kakao_map_view/        카카오맵 SDK를 Flutter 위젯으로 쓰게 
 
 ```
 presentation ──→ domain ←── data
- (Cubit, 위젯)    (모델, 규칙,      (카카오 API, DTO,
+ (Notifier, 위젯)  (모델, 규칙,      (카카오 API, DTO,
                   저장소 인터페이스)   저장소 구현)
 ```
 - **domain**은 아무것도 모른다. Flutter·dio·JSON import 없음. 여기만 읽어도 앱이 무엇을 하는지 알 수 있다.
@@ -53,12 +53,12 @@ presentation ──→ domain ←── data
 | 1 | `core/error/failure.dart`, `result.dart` | 모든 계층이 결과를 이 타입으로 주고받는다 |
 | 2 | `features/*/domain/` | 모델과 규칙(UseCase). 짧고 순수 Dart. 테스트가 사양서 역할 |
 | 3 | `core/network/safe_api_call.dart` → `features/place/data/` | 네트워크 한 바퀴: Retrofit API → DTO → mapper → Repository |
-| 4 | `core/presentation/effect_cubit.dart`, `widgets/effect_listener.dart` | Cubit이 "상태"와 "일회성 이벤트"를 나누는 방식 |
-| 5 | `features/*/presentation/cubit/` | 화면 로직. 테스트(`test/features/...`)를 같이 보면 동작이 보인다 |
+| 4 | `core/presentation/effect_channel.dart`, `widgets/effect_listener.dart` | Notifier가 "상태"와 "일회성 이벤트"를 나누는 방식 |
+| 5 | `features/*/presentation/*_notifier.dart` | 화면 로직(Riverpod Notifier). 테스트(`test/features/...`)를 같이 보면 동작이 보인다. 푸시만 아직 `cubit/` |
 | 6 | `features/map/presentation/map_screen.dart` | 모든 것을 조립하는 화면. 가장 길다 |
 | 7 | `packages/kakao_map_view/` | 네이티브 연결. 아래 5절 참고 |
 
-테스트 파일 이름은 대상 파일과 같다(`route_cubit.dart` ↔ `route_cubit_test.dart`).
+테스트 파일 이름은 대상 파일과 같다(`route_notifier.dart` ↔ `route_notifier_test.dart`).
 테스트 이름이 한국어 문장이라 **테스트 목록이 곧 기능 명세**다.
 
 ## 4. 주요 흐름
@@ -76,15 +76,15 @@ CategoryChips 탭
 ```
 _DirectionsButton → RoutePlannerPage(push)
   출발지 기본 = 내 위치, 최근 장소 탭 = 도착지
-  두 지점이 정해지면 RoutePlannerCubit이 effect completed(RoutePlan) → 페이지가 pop(plan)
-→ MapScreen이 받은 plan으로 RouteCubit.plan(...)
+  두 지점이 정해지면 RoutePlannerNotifier가 effect completed(RoutePlan) → 페이지가 pop(plan)
+→ MapScreen이 받은 plan으로 RouteNotifier.plan(...)
 → 세 이동 수단을 동시에 조회(Future.wait), 도착하는 대로 state.results에 반영
-→ state.overlay(지도에 그릴 선) 변경 → MapScreen의 BlocListener가 지도에 showRoute
+→ state.overlay(지도에 그릴 선) 변경 → MapScreen의 ref.listen이 지도에 showRoute
 ```
 
-### 4-3. Cubit → 지도 반영 (MapScreen)
-Cubit은 지도를 모른다. MapScreen이 두 통로로 지도에 전달한다.
-- **상태 변화** → `BlocListener` (예: `myLocation` 바뀜 → `updateMyLocation`)
+### 4-3. Notifier → 지도 반영 (MapScreen)
+Notifier는 지도를 모른다. MapScreen이 두 통로로 지도에 전달한다.
+- **상태 변화** → `ref.listen(provider.select(...))` (예: `myLocation` 바뀜 → `updateMyLocation`)
 - **일회성 이벤트** → `EffectListener` (예: `moveCamera`, 토스트)
 - 지도가 준비되기 전 카메라 명령은 `_pendingCamera`에 보관했다가 `onMapCreated`에서 실행.
 

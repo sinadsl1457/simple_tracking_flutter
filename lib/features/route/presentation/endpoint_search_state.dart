@@ -1,4 +1,4 @@
-// [route/presentation] EndpointSearchCubit의 상태(State)와 일회성 effect 모델. 로직은 endpoint_search_cubit.dart.
+// [route/presentation] EndpointSearchNotifier의 상태(State)와 일회성 effect 모델. 로직은 endpoint_search_notifier.dart.
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:simple_tracking/core/error/failure.dart';

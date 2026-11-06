@@ -4,15 +4,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:simple_tracking/core/geo/geo_point.dart';
 import 'package:simple_tracking/core/presentation/widgets/effect_listener.dart';
 import 'package:simple_tracking/features/place/domain/recent_place.dart';
 import 'package:simple_tracking/features/route/domain/route_endpoint.dart';
 import 'package:simple_tracking/features/route/domain/travel_mode.dart';
-import 'package:simple_tracking/features/route/presentation/cubit/route_planner_cubit.dart';
 import 'package:simple_tracking/features/route/presentation/endpoint_picker_page.dart';
+import 'package:simple_tracking/features/route/presentation/route_planner_notifier.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/route_display.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/route_endpoint_display.dart';
 import 'package:simple_tracking/features/route/presentation/widgets/route_header.dart';
@@ -29,7 +29,7 @@ class RoutePlannerArgs {
 
 /// 지도 첫 화면의 길찾기 버튼으로 여는 준비 화면.
 /// 두 지점이 정해지면 [RoutePlan]을 돌려주며 닫힌다.
-class RoutePlannerPage extends StatefulWidget {
+class RoutePlannerPage extends ConsumerStatefulWidget {
   const RoutePlannerPage({required this.args, super.key});
 
   static const path = '/route-planner';
@@ -37,16 +37,16 @@ class RoutePlannerPage extends StatefulWidget {
   final RoutePlannerArgs args;
 
   @override
-  State<RoutePlannerPage> createState() => _RoutePlannerPageState();
+  ConsumerState<RoutePlannerPage> createState() => _RoutePlannerPageState();
 }
 
-class _RoutePlannerPageState extends State<RoutePlannerPage> {
-  RoutePlannerCubit get _cubit => context.read<RoutePlannerCubit>();
+class _RoutePlannerPageState extends ConsumerState<RoutePlannerPage> {
+  RoutePlannerNotifier get _planner => ref.read(routePlannerProvider.notifier);
 
   @override
   void initState() {
     super.initState();
-    unawaited(_cubit.onAppear(mode: widget.args.mode));
+    unawaited(_planner.onAppear(mode: widget.args.mode));
   }
 
   Future<RouteEndpoint?> _pick(String title) => context.push<RouteEndpoint>(
@@ -55,54 +55,53 @@ class _RoutePlannerPageState extends State<RoutePlannerPage> {
   );
 
   Future<void> _pickOrigin() async {
-    if (await _pick('출발지') case final origin?) _cubit.setOrigin(origin);
+    if (await _pick('출발지') case final origin?) _planner.setOrigin(origin);
   }
 
   Future<void> _pickDestination() async {
     if (await _pick('도착지') case final destination?) {
-      _cubit.setDestination(destination);
+      _planner.setDestination(destination);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(routePlannerProvider);
     return EffectListener<RoutePlannerEffect>(
-      effects: _cubit.effects,
+      effects: _planner.effects,
       onEffect: (context, effect) => switch (effect) {
         RoutePlanCompletedEffect(:final plan) => context.pop(plan),
       },
       child: Scaffold(
         body: SafeArea(
           bottom: false,
-          child: BlocBuilder<RoutePlannerCubit, RoutePlannerState>(
-            builder: (context, state) => Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                  child: RouteHeader(
-                    originName: state.origin?.title,
-                    destinationName: state.destination?.title,
-                    onTapOrigin: () => unawaited(_pickOrigin()),
-                    onTapDestination: () => unawaited(_pickDestination()),
-                    onSwap: _cubit.swap,
-                    onClose: context.pop,
-                  ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: RouteHeader(
+                  originName: state.origin?.title,
+                  destinationName: state.destination?.title,
+                  onTapOrigin: () => unawaited(_pickOrigin()),
+                  onTapDestination: () => unawaited(_pickDestination()),
+                  onSwap: _planner.swap,
+                  onClose: context.pop,
                 ),
-                _ModeIconTabs(
-                  selected: state.mode,
-                  onSelect: _cubit.selectMode,
+              ),
+              _ModeIconTabs(
+                selected: state.mode,
+                onSelect: _planner.selectMode,
+              ),
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+              Expanded(
+                child: _RecentPlaceList(
+                  places: state.recentPlaces,
+                  onTap: _planner.chooseRecent,
+                  onRemove: (r) => unawaited(_planner.removeRecent(r.place.id)),
                 ),
-                const SizedBox(height: 8),
-                const Divider(height: 1),
-                Expanded(
-                  child: _RecentPlaceList(
-                    places: state.recentPlaces,
-                    onTap: _cubit.chooseRecent,
-                    onRemove: (r) => unawaited(_cubit.removeRecent(r.place.id)),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
