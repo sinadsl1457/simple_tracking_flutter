@@ -10,7 +10,8 @@
 
 ```
 lib/
-├ main.dart / app.dart          시작점, 라우트(go_router), Cubit 생성(BlocProvider)
+├ main.dart / app.dart          시작점, MaterialApp, 앱 전체 Cubit(PushCubit)
+├ app_router.dart               라우트 표(go_router), 화면별 Cubit 생성(BlocProvider)
 ├ core/                         기능과 무관한 공통 코드
 │  ├ config/   app_config       --dart-define 값(카카오 키, 고정 위치, 푸시 켜기)
 │  ├ di/       injection        get_it + injectable 설정 (Dio, SharedPreferences 등록)
@@ -110,12 +111,12 @@ Cubit은 지도를 모른다. MapScreen이 두 통로로 지도에 전달한다.
 | `data/fcm_setup.dart` | data | DI 전에 `Firebase.initializeApp()` + 백그라운드 핸들러 | |
 | `presentation/cubit/push_cubit.dart` | presentation | 수신 경로 3가지를 effect 2개(`open`, `showInApp`)로 모음 | BuildContext, router |
 | `presentation/push_effect_listener.dart` | presentation | effect → 스낵바 / `onOpen` 호출 | 어느 경로로 갈지 |
-| `app.dart` `_openPushDestination` | 앱 셸 | `PushDestination` → URL(`/?q=카페`) → `router.go` | |
+| `app_router.dart` `pushDestinationLocation` | 앱 셸 | `PushDestination` → URL(`/?q=카페`). `app.dart`가 `appRouter.go`로 이동 | |
 
 ```
 FCM ─→ FcmPushRepository ─(PushMessage)─→ PushCubit ─(PushEffect)─→ PushEffectListener
         RemoteMessage를                     어떤 일인지 고름            ├ showInApp → 스낵바("보기" → cubit.openInApp)
-        도메인으로 바꿈                                                 └ open → app.dart가 경로로 바꿔 router.go
+        도메인으로 바꿈                                                 └ open → app_router.dart가 경로로 바꿈 → appRouter.go
                                                                            → MapScreen(searchQuery) → 검색
 ```
 
@@ -132,7 +133,7 @@ FCM ─→ FcmPushRepository ─(PushMessage)─→ PushCubit ─(PushEffect)─
   `app.dart`의 `MaterialApp` 위에서 한 번만 만들어서 앱 수명 동안 하나다. 아무 데서나 `getIt<...>()`로 꺼내지 않는다.
 - **인터페이스가 실제로 일하는 곳**: 구현이 둘(`Fcm`/`Disabled`)이라 Cubit·app.dart에 `if (pushEnabled)`가 없다.
   테스트는 `FakePushRepository`로 Firebase 없이 돈다.
-- **경로는 app.dart만 안다**: domain은 "검색하러 가라"까지만 말한다. 라우트 구조가 바뀌어도 domain·data·Cubit은 그대로.
+- **경로는 app_router.dart만 안다**: domain은 "검색하러 가라"까지만 말한다. 라우트 구조가 바뀌어도 domain·data·Cubit은 그대로.
   나중에 딥링크(웹 링크로 앱 열기)도 같은 `/?q=` 경로로 들어오게 할 수 있다.
 - **백그라운드 핸들러는 DI 밖**: 별도 isolate라 get_it·Cubit이 비어 있다. `fcm_setup.dart`의 top-level 함수가 최소한만 한다.
 - **토큰 → 서버**: 지금은 서버가 없어서 `PushState.token`에만 둔다. 서버가 생기면

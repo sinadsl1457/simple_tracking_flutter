@@ -1,7 +1,7 @@
 // [push/presentation] PushCubit의 effect를 받아 화면에 반영한다.
 // 탭 → onOpen(이동), 포그라운드 수신 → 스낵바.
 // 쓰는 곳: app.dart(MaterialApp 위). 어느 경로로 갈지는 모른다.
-// 라우트 표가 있는 app.dart가 onOpen으로 정한다.
+// 경로는 app_router.dart의 pushDestinationLocation이 정하고, app.dart가 onOpen으로 연결한다.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

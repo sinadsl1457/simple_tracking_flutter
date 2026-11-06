@@ -1,6 +1,7 @@
 // [push/presentation] 앱 전체에 하나뿐인 푸시 Cubit. 수신 경로 3가지(포그라운드·백그라운드 탭·종료 후 탭)를
 // effect 두 종류(open, showInApp)로 모은다. 만드는 곳: app.dart(MaterialApp 위). 테스트: test/features/push/push_cubit_test.dart
-// 화면 이동은 하지 않는다(BuildContext·router를 모름). 어디로 갈지는 effect로 내보내고 app.dart가 이동시킨다.
+// 화면 이동은 하지 않는다(BuildContext·router를 모름).
+// 어디로 갈지는 effect로 내보내고 app.dart·app_router.dart가 이동시킨다.
 
 import 'dart:async';
 

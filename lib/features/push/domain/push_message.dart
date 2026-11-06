@@ -17,7 +17,7 @@ abstract class PushMessage with _$PushMessage {
 
 /// 알림을 탭하면 갈 곳. 서버가 보내는 data 페이로드의 "type"과 1:1로 대응한다.
 ///
-/// 화면 경로(URL)는 여기 두지 않는다. 경로는 presentation(app.dart)이 정한다.
+/// 화면 경로(URL)는 여기 두지 않는다. 경로는 앱 셸(app_router.dart)이 정한다.
 /// 그래야 라우트 구조가 바뀌어도 domain·data는 그대로다.
 @freezed
 sealed class PushDestination with _$PushDestination {

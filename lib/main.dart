@@ -1,5 +1,5 @@
 // [시작점] DI를 초기화하고 앱을 띄운다.
-// 함께 볼 파일: app.dart(라우트), core/di/injection.dart, features/push/data/fcm_setup.dart
+// 함께 볼 파일: app.dart(앱 셸), app_router.dart(라우트), core/di/injection.dart, features/push/data/fcm_setup.dart
 
 import 'package:flutter/material.dart';
 import 'package:simple_tracking/app.dart';

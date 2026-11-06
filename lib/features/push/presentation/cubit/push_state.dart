@@ -16,7 +16,7 @@ abstract class PushState with _$PushState {
   }) = _PushState;
 }
 
-/// 받는 쪽: app.dart의 _PushEffectListener.
+/// 받는 쪽: push_effect_listener.dart (app.dart가 MaterialApp 위에 붙임).
 @freezed
 sealed class PushEffect with _$PushEffect {
   /// 알림을 탭했다 → 그 화면으로 이동.
