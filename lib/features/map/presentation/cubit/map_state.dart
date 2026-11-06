@@ -8,6 +8,7 @@ import 'package:simple_tracking/features/location/domain/user_location.dart';
 part 'map_state.freezed.dart';
 
 /// 카메라가 내 위치를 따라가는 방식. 내 위치 버튼을 누를 때마다 순서대로 바뀐다.
+/// 단, 지도를 옮겨 둔 상태(none + 카메라가 내 위치 아님)에서 누르면 카메라만 옮기고 모드는 그대로다.
 enum FollowMode {
   /// 따라가지 않는다. 지도를 자유롭게 움직일 수 있다.
   none,
@@ -32,6 +33,10 @@ abstract class MapState with _$MapState {
     @Default(false) bool hasLocationPermission,
     UserLocation? myLocation,
     @Default(FollowMode.none) FollowMode followMode,
+
+    /// 카메라가 내 위치에 맞춰져 있다(첫 위치 이동 · 내 위치 버튼 이후 지도를 옮기지 않음).
+    /// false면 내 위치 버튼은 카메라만 옮기고, true면 따라가기를 켠다.
+    @Default(false) bool isCameraOnMyLocation,
   }) = _MapState;
 }
 

@@ -8,19 +8,22 @@ import 'package:simple_tracking/features/map/presentation/cubit/map_state.dart';
 /// | 상태 | 아이콘 | 누르면 |
 /// |---|---|---|
 /// | 권한 없음 | 위치 꺼짐(회색) | 권한 요청 |
-/// | none | 조준점(검정) | 내 위치로 이동 + 따라가기 |
+/// | none (지도를 옮겨 둠) | 조준점(검정) | 내 위치로 카메라만 이동 |
+/// | none (카메라가 내 위치) | 조준점(검정) | 따라가기 |
 /// | follow | 조준점(파랑) | 지도 회전까지 |
 /// | followWithHeading | 나침반 화살표(파랑) | 따라가기 해제 |
 class MyLocationButton extends StatelessWidget {
   const MyLocationButton({
     required this.hasPermission,
     required this.followMode,
+    required this.isCameraOnMyLocation,
     required this.onPressed,
     super.key,
   });
 
   final bool hasPermission;
   final FollowMode followMode;
+  final bool isCameraOnMyLocation;
   final VoidCallback onPressed;
 
   @override
@@ -38,7 +41,8 @@ class MyLocationButton extends StatelessWidget {
         tooltip: !hasPermission
             ? '위치 권한 요청'
             : switch (followMode) {
-                FollowMode.none => '내 위치 따라가기',
+                FollowMode.none =>
+                  isCameraOnMyLocation ? '내 위치 따라가기' : '내 위치로 이동',
                 FollowMode.follow => '진행 방향으로 지도 돌리기',
                 FollowMode.followWithHeading => '따라가기 끄기',
               },

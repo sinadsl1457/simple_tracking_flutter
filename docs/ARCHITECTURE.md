@@ -190,6 +190,9 @@ Native KakaoMapViewPlugin (등록) → KakaoMapViewFactory.create
 | 시뮬레이터 | 나침반 없음 → 가짜 방향(천천히 회전)으로 화면만 확인 | 에뮬레이터 가상 센서로 확인 가능: `adb emu sensor set magnetic-field x:y:z` |
 
 **따라가기 모드** — 내 위치 버튼을 누를 때마다 `none → follow → followWithHeading → none`.
+- 단, 지도를 옮겨 둔 상태(`isCameraOnMyLocation == false`: 드래그·검색·길찾기 이후)에서 누르면 카메라만 내 위치로
+  옮기고 `none`을 유지한다(마커도 그대로). 한 번 더 눌러야 `follow`가 되어 콘(부채꼴)이 나온다.
+  첫 위치 자동 이동 뒤에는 이미 내 위치라 첫 탭에 바로 따라가기.
 - 상태(`FollowMode`)는 `MapCubit`이 갖고, `MapScreen`이 `setFollowMode`로 지도에 알린다. 카메라 추적은 카카오 SDK의
   **TrackingManager**(iOS `getTrackingManager().startTrackingPoi`, Android `trackingManager.startTracking`)가 한다.
   트래킹은 마커의 이동 애니메이션을 매 프레임 따라가서, Dart에서 카메라를 따로 옮기는 것보다 마커와 어긋나지 않는다.

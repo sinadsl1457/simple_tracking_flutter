@@ -485,6 +485,7 @@ class _MapScreenState extends State<MapScreen> {
             child: MyLocationButton(
               hasPermission: mapState.hasLocationPermission,
               followMode: mapState.followMode,
+              isCameraOnMyLocation: mapState.isCameraOnMyLocation,
               onPressed: _mapCubit.onMyLocationButtonTapped,
             ),
           ),

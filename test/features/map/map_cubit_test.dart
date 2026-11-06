@@ -67,7 +67,7 @@ void main() {
       expect(cubit.state.followMode, FollowMode.follow);
     });
 
-    test('누를 때마다 따라가기 → 지도 회전 → 해제 순으로 바뀐다', () async {
+    test('카메라가 내 위치면 누를 때마다 따라가기 → 지도 회전 → 해제 순으로 바뀐다', () async {
       final cubit = makeCubit(
         FakeLocationRepository(updates: [Fixtures.location(latitude: 37.1)]),
       );
@@ -88,8 +88,43 @@ void main() {
         FollowMode.none,
         FollowMode.follow,
       ]);
-      // 카메라 이동은 따라가기를 새로 켤 때만
+      // 카메라 이동은 따라가기를 새로 켤 때만. 해제 버튼은 카메라를 그대로 두므로 바로 다시 켠다.
       expect(effects, [moveTo(37.1), moveTo(37.1)]);
+    });
+
+    test('지도를 옮긴 뒤 누르면 카메라만 옮기고, 한 번 더 누르면 따라가기를 켠다', () async {
+      final cubit = makeCubit(
+        FakeLocationRepository(updates: [Fixtures.location(latitude: 37.1)]),
+      );
+      await cubit.onAppear();
+      await flush();
+      cubit.onMapPanned();
+      effects.clear();
+
+      cubit.onMyLocationButtonTapped();
+      await flush();
+
+      expect(effects, [moveTo(37.1)]);
+      expect(cubit.state.followMode, FollowMode.none);
+      expect(cubit.state.isCameraOnMyLocation, isTrue);
+
+      cubit.onMyLocationButtonTapped();
+
+      expect(cubit.state.followMode, FollowMode.follow);
+    });
+
+    test('다른 기능이 카메라를 옮긴 뒤에도 먼저 카메라만 옮긴다', () async {
+      final cubit = makeCubit(
+        FakeLocationRepository(updates: [Fixtures.location(latitude: 37.1)]),
+      );
+      await cubit.onAppear();
+      await flush();
+      cubit
+        ..stopFollowing()
+        ..onMyLocationButtonTapped();
+
+      expect(cubit.state.followMode, FollowMode.none);
+      expect(cubit.state.isCameraOnMyLocation, isTrue);
     });
 
     test('위치를 모르면 따라가기를 켜지 않는다', () async {
@@ -122,6 +157,7 @@ void main() {
       cubit.onMapPanned();
 
       expect(cubit.state.followMode, FollowMode.none);
+      expect(cubit.state.isCameraOnMyLocation, isFalse);
     });
 
     test('지도를 돌리면 회전만 풀고 따라가기는 유지한다', () async {
