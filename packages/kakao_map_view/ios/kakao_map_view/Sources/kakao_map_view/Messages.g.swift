@@ -188,16 +188,6 @@ private func nilOrValue<T>(_ value: Any?) -> T? {
 }
 
 
-/// 카메라를 여러 지점에 맞출 때 화면의 어떤 부분이 UI에 가려지는지.
-enum MapFitLayout: Int, CaseIterable {
-  /// 위: 검색창+칩, 아래: 큰 하단 시트
-  case searchResults = 0
-  /// 위: 출발·도착 카드와 탭, 아래: 작은 요약 카드
-  case route = 1
-  /// 위: 출발·도착 카드와 탭, 아래: 큰 하단 시트(대중교통 목록)
-  case routeWithSheet = 2
-}
-
 enum RouteLineKind: Int, CaseIterable {
   case car = 0
   case walk = 1
@@ -302,6 +292,59 @@ struct CameraPosition: Hashable, CustomStringConvertible {
 
   public var description: String {
     return "CameraPosition(center: \(String(describing: center)), zoom: \(String(describing: zoom)))"
+  }
+}
+
+/// 지도 위를 앱 UI(검색창, 하단 시트 등)가 가리는 여백. 논리 픽셀(Flutter 단위).
+/// fitCamera는 지점들을 이 여백 안쪽, 실제로 보이는 영역에 맞춘다.
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct MapInsets: Hashable, CustomStringConvertible {
+  var top: Double
+  var bottom: Double
+  var left: Double
+  var right: Double
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> MapInsets? {
+    let top = pigeonVar_list[0] as! Double
+    let bottom = pigeonVar_list[1] as! Double
+    let left = pigeonVar_list[2] as! Double
+    let right = pigeonVar_list[3] as! Double
+
+    return MapInsets(
+      top: top,
+      bottom: bottom,
+      left: left,
+      right: right
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      top,
+      bottom,
+      left,
+      right,
+    ]
+  }
+  static func == (lhs: MapInsets, rhs: MapInsets) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return MessagesPigeonInternal.deepEquals(lhs.top, rhs.top) && MessagesPigeonInternal.deepEquals(lhs.bottom, rhs.bottom) && MessagesPigeonInternal.deepEquals(lhs.left, rhs.left) && MessagesPigeonInternal.deepEquals(lhs.right, rhs.right)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("MapInsets")
+    MessagesPigeonInternal.deepHash(value: top, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: bottom, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: left, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: right, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "MapInsets(top: \(String(describing: top)), bottom: \(String(describing: bottom)), left: \(String(describing: left)), right: \(String(describing: right)))"
   }
 }
 
@@ -495,31 +538,27 @@ private class MessagesPigeonCodecReader: FlutterStandardReader {
     case 129:
       let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
       if let enumResultAsInt = enumResultAsInt {
-        return MapFitLayout(rawValue: enumResultAsInt)
+        return RouteLineKind(rawValue: enumResultAsInt)
       }
       return nil
     case 130:
       let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
       if let enumResultAsInt = enumResultAsInt {
-        return RouteLineKind(rawValue: enumResultAsInt)
+        return MapFollowMode(rawValue: enumResultAsInt)
       }
       return nil
     case 131:
       let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
       if let enumResultAsInt = enumResultAsInt {
-        return MapFollowMode(rawValue: enumResultAsInt)
-      }
-      return nil
-    case 132:
-      let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
-      if let enumResultAsInt = enumResultAsInt {
         return MapGesture(rawValue: enumResultAsInt)
       }
       return nil
-    case 133:
+    case 132:
       return LatLng.fromList(self.readValue() as! [Any?])
-    case 134:
+    case 133:
       return CameraPosition.fromList(self.readValue() as! [Any?])
+    case 134:
+      return MapInsets.fromList(self.readValue() as! [Any?])
     case 135:
       return PlaceMarker.fromList(self.readValue() as! [Any?])
     case 136:
@@ -536,22 +575,22 @@ private class MessagesPigeonCodecReader: FlutterStandardReader {
 
 private class MessagesPigeonCodecWriter: FlutterStandardWriter {
   override func writeValue(_ value: Any) {
-    if let value = value as? MapFitLayout {
+    if let value = value as? RouteLineKind {
       super.writeByte(129)
       super.writeValue(value.rawValue)
-    } else if let value = value as? RouteLineKind {
+    } else if let value = value as? MapFollowMode {
       super.writeByte(130)
       super.writeValue(value.rawValue)
-    } else if let value = value as? MapFollowMode {
+    } else if let value = value as? MapGesture {
       super.writeByte(131)
       super.writeValue(value.rawValue)
-    } else if let value = value as? MapGesture {
-      super.writeByte(132)
-      super.writeValue(value.rawValue)
     } else if let value = value as? LatLng {
-      super.writeByte(133)
+      super.writeByte(132)
       super.writeValue(value.toList())
     } else if let value = value as? CameraPosition {
+      super.writeByte(133)
+      super.writeValue(value.toList())
+    } else if let value = value as? MapInsets {
       super.writeByte(134)
       super.writeValue(value.toList())
     } else if let value = value as? PlaceMarker {
@@ -592,8 +631,8 @@ class MessagesPigeonCodec: FlutterStandardMessageCodec, @unchecked Sendable {
 /// Generated protocol from Pigeon that represents a handler of messages from Flutter.
 protocol KakaoMapHostApi {
   func moveCamera(point: LatLng, zoom: Int64) throws
-  /// 지점이 모두 보이게 맞춘다.
-  func fitCamera(points: [LatLng], layout: MapFitLayout) throws
+  /// 지점이 모두 [insets] 안쪽(UI에 가리지 않는 영역)에 보이게 맞춘다.
+  func fitCamera(points: [LatLng], insets: MapInsets) throws
   func showPlaceMarkers(markers: [PlaceMarker], selectedId: String?) throws
   /// null이면 경로를 지운다.
   func showRoute(overlay: RouteOverlay?) throws
@@ -625,15 +664,15 @@ class KakaoMapHostApiSetup {
     } else {
       moveCameraChannel.setMessageHandler(nil)
     }
-    /// 지점이 모두 보이게 맞춘다.
+    /// 지점이 모두 [insets] 안쪽(UI에 가리지 않는 영역)에 보이게 맞춘다.
     let fitCameraChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.fitCamera\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       fitCameraChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
         let pointsArg = args[0] as! [LatLng]
-        let layoutArg = args[1] as! MapFitLayout
+        let insetsArg = args[1] as! MapInsets
         do {
-          try api.fitCamera(points: pointsArg, layout: layoutArg)
+          try api.fitCamera(points: pointsArg, insets: insetsArg)
           reply(wrapResult(nil))
         } catch {
           reply(wrapError(error))

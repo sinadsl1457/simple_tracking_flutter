@@ -72,6 +72,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   SheetDetent _transitSheetDetent = SheetDetent.medium;
   double _sheetHeight = 0;
   double _routeCardHeight = 0;
+
+  /// 화면 위 UI(검색창·칩 또는 길찾기 카드·탭)의 높이. 카메라를 그 아래에 맞추는 데 쓴다.
+  double _topControlsHeight = 0;
   late final AppLifecycleListener _lifecycle;
 
   MapNotifier get _myLocation => ref.read(mapProvider.notifier);
@@ -147,10 +150,24 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _moveCamera(GeoPoint point, {required int zoom}) =>
       _camera((m) => m.moveCamera(point.toLatLng(), zoom: zoom));
 
-  void _fitCamera(List<LatLng> points, MapFitLayout layout) {
+  /// [points]가 위 UI와 아래 UI([bottomCovered]) 사이, 실제로 보이는 곳에 들어오게 맞춘다.
+  /// 아래 시트는 펼쳐지는 중일 수 있어 지금 높이가 아니라 멈출 높이를 넘겨받는다.
+  void _fitCamera(List<LatLng> points, {required double bottomCovered}) {
     if (points.isEmpty) return;
-    _camera((m) => m.fitCamera(points, layout));
+    final topCovered =
+        MediaQuery.paddingOf(context).top + 8 + _topControlsHeight;
+    final insets = MapInsets(
+      top: topCovered,
+      bottom: bottomCovered,
+      left: 0,
+      right: 0,
+    );
+    _camera((m) => m.fitCamera(points, insets));
   }
+
+  /// 중간 높이로 멈춘 하단 시트(장소 결과·대중교통 목록)가 가리는 높이.
+  double get _mediumSheetHeight =>
+      MediaQuery.sizeOf(context).height * MapBottomSheet.mediumSize;
 
   /// 길찾기 중에는 검색 결과 마커를 숨기고 출발·도착 마커만 보인다.
   void _syncPlaceMarkers() {
@@ -288,7 +305,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         FitPlacesEffect(:final points) => _cameraAwayFromMe(
           () => _fitCamera([
             for (final p in points) p.toLatLng(),
-          ], MapFitLayout.searchResults),
+          ], bottomCovered: _mediumSheetHeight),
         ),
         FocusPlaceEffect(:final point) => _cameraAwayFromMe(
           () => _moveCamera(point, zoom: 17),
@@ -296,16 +313,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         SearchFailureEffect(:final failure) => _showToast(failure.userMessage),
       };
 
-  /// RouteNotifier effect → 경로에 카메라 맞추기(대중교통은 큰 시트를 고려), 오류 토스트.
+  /// RouteNotifier effect → 경로에 카메라 맞추기(대중교통은 목록 시트, 나머지는 요약 카드 위), 오류 토스트.
   void _onRouteEffect(BuildContext context, RouteEffect effect) {
     switch (effect) {
       case FitRouteEffect(:final points):
         _cameraAwayFromMe(
           () => _fitCamera(
             points,
-            _routeState.selectedMode == TravelMode.transit
-                ? MapFitLayout.routeWithSheet
-                : MapFitLayout.route,
+            bottomCovered: _routeState.selectedMode == TravelMode.transit
+                ? _mediumSheetHeight
+                : _routeCardHeight,
           ),
         );
       case RouteFailureEffect(:final failure):
@@ -427,9 +444,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             top: padding.top + 8,
             left: 0,
             right: 0,
-            child: route.destination == null
-                ? _searchControls(search, isPlaceSheetVisible)
-                : _routeControls(route),
+            child: MeasureSize(
+              onChange: (size) => _topControlsHeight = size.height,
+              child: route.destination == null
+                  ? _searchControls(search, isPlaceSheetVisible)
+                  : _routeControls(route),
+            ),
           ),
           if (isPlaceSheetVisible)
             Positioned.fill(

@@ -201,22 +201,6 @@ class FlutterError (
   val details: Any? = null
 ) : RuntimeException()
 
-/** 카메라를 여러 지점에 맞출 때 화면의 어떤 부분이 UI에 가려지는지. */
-enum class MapFitLayout(val raw: Int) {
-  /** 위: 검색창+칩, 아래: 큰 하단 시트 */
-  SEARCH_RESULTS(0),
-  /** 위: 출발·도착 카드와 탭, 아래: 작은 요약 카드 */
-  ROUTE(1),
-  /** 위: 출발·도착 카드와 탭, 아래: 큰 하단 시트(대중교통 목록) */
-  ROUTE_WITH_SHEET(2);
-
-  companion object {
-    fun ofRaw(raw: Int): MapFitLayout? {
-      return values().firstOrNull { it.raw == raw }
-    }
-  }
-}
-
 enum class RouteLineKind(val raw: Int) {
   CAR(0),
   WALK(1),
@@ -343,6 +327,60 @@ data class CameraPosition (
   }
   override fun toString(): String {
     return "CameraPosition(center=$center, zoom=$zoom)"
+  }
+}
+
+/**
+ * 지도 위를 앱 UI(검색창, 하단 시트 등)가 가리는 여백. 논리 픽셀(Flutter 단위).
+ * fitCamera는 지점들을 이 여백 안쪽, 실제로 보이는 영역에 맞춘다.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class MapInsets (
+  val top: Double,
+  val bottom: Double,
+  val left: Double,
+  val right: Double
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): MapInsets {
+      val top = pigeonVar_list[0] as Double
+      val bottom = pigeonVar_list[1] as Double
+      val left = pigeonVar_list[2] as Double
+      val right = pigeonVar_list[3] as Double
+      return MapInsets(top, bottom, left, right)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      top,
+      bottom,
+      left,
+      right,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as MapInsets
+    return MessagesPigeonUtils.deepEquals(this.top, other.top) && MessagesPigeonUtils.deepEquals(this.bottom, other.bottom) && MessagesPigeonUtils.deepEquals(this.left, other.left) && MessagesPigeonUtils.deepEquals(this.right, other.right)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.top)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.bottom)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.left)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.right)
+    return result
+  }
+  override fun toString(): String {
+    return "MapInsets(top=$top, bottom=$bottom, left=$left, right=$right)"
   }
 }
 
@@ -541,32 +579,32 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
     return when (type) {
       129.toByte() -> {
         return (readValue(buffer) as Long?)?.let {
-          MapFitLayout.ofRaw(it.toInt())
+          RouteLineKind.ofRaw(it.toInt())
         }
       }
       130.toByte() -> {
         return (readValue(buffer) as Long?)?.let {
-          RouteLineKind.ofRaw(it.toInt())
+          MapFollowMode.ofRaw(it.toInt())
         }
       }
       131.toByte() -> {
         return (readValue(buffer) as Long?)?.let {
-          MapFollowMode.ofRaw(it.toInt())
-        }
-      }
-      132.toByte() -> {
-        return (readValue(buffer) as Long?)?.let {
           MapGesture.ofRaw(it.toInt())
         }
       }
-      133.toByte() -> {
+      132.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           LatLng.fromList(it)
         }
       }
-      134.toByte() -> {
+      133.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           CameraPosition.fromList(it)
+        }
+      }
+      134.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          MapInsets.fromList(it)
         }
       }
       135.toByte() -> {
@@ -594,27 +632,27 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
   }
   override fun writeValue(stream: ByteArrayOutputStream, value: Any?)   {
     when (value) {
-      is MapFitLayout -> {
+      is RouteLineKind -> {
         stream.write(129)
         writeValue(stream, value.raw.toLong())
       }
-      is RouteLineKind -> {
+      is MapFollowMode -> {
         stream.write(130)
         writeValue(stream, value.raw.toLong())
       }
-      is MapFollowMode -> {
+      is MapGesture -> {
         stream.write(131)
         writeValue(stream, value.raw.toLong())
       }
-      is MapGesture -> {
-        stream.write(132)
-        writeValue(stream, value.raw.toLong())
-      }
       is LatLng -> {
-        stream.write(133)
+        stream.write(132)
         writeValue(stream, value.toList())
       }
       is CameraPosition -> {
+        stream.write(133)
+        writeValue(stream, value.toList())
+      }
+      is MapInsets -> {
         stream.write(134)
         writeValue(stream, value.toList())
       }
@@ -647,8 +685,8 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
  */
 interface KakaoMapHostApi {
   fun moveCamera(point: LatLng, zoom: Long)
-  /** 지점이 모두 보이게 맞춘다. */
-  fun fitCamera(points: List<LatLng>, layout: MapFitLayout)
+  /** 지점이 모두 [insets] 안쪽(UI에 가리지 않는 영역)에 보이게 맞춘다. */
+  fun fitCamera(points: List<LatLng>, insets: MapInsets)
   fun showPlaceMarkers(markers: List<PlaceMarker>, selectedId: String?)
   /** null이면 경로를 지운다. */
   fun showRoute(overlay: RouteOverlay?)
@@ -691,9 +729,9 @@ interface KakaoMapHostApi {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
             val pointsArg = args[0] as List<LatLng>
-            val layoutArg = args[1] as MapFitLayout
+            val insetsArg = args[1] as MapInsets
             val wrapped: List<Any?> = try {
-              api.fitCamera(pointsArg, layoutArg)
+              api.fitCamera(pointsArg, insetsArg)
               listOf(null)
             } catch (exception: Throwable) {
               MessagesPigeonUtils.wrapError(exception)

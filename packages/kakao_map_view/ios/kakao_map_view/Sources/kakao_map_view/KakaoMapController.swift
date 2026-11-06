@@ -405,40 +405,42 @@ extension KakaoMapController: @preconcurrency KakaoMapHostApi {
     /// Dart: controller.moveCamera → 카메라를 한 지점으로 애니메이션 이동.
     func moveCamera(point: LatLng, zoom: Int64) {
         guard let map else { return }
+        // 화면 한가운데에 오도록 fitCamera가 남긴 여백을 비운다.
+        map.resetMargins()
         map.animateCamera(
             cameraUpdate: CameraUpdate.make(target: Self.mapPoint(point), zoomLevel: Int(zoom), mapView: map),
             options: CameraAnimationOptions(autoElevation: false, consecutive: false, durationInMillis: Self.cameraAnimationMillis)
         )
     }
 
-    /// 지점이 모두 보이게 맞춘다. 위·아래 UI가 지도를 가리는 만큼 영역을 넓혀 잡는다.
-    func fitCamera(points: [LatLng], layout: MapFitLayout) {
+    /// Dart: controller.fitCamera → 지점이 모두 insets 안쪽(앱 UI에 가리지 않는 영역)에 보이게 맞춘다.
+    /// SDK 여백(setMargins)에 UI가 가리는 만큼을 넣으면 영역 맞추기가 그 안쪽 기준이 된다.
+    /// 여백은 다음 moveCamera가 비울 때까지 남는다(그동안 내 위치 따라가기도 보이는 영역 기준).
+    func fitCamera(points: [LatLng], insets: MapInsets) {
         guard let map, !points.isEmpty else { return }
-        if points.count == 1, let point = points.first {
-            moveCamera(point: point, zoom: 16)
-            return
-        }
+        map.setMargins(UIEdgeInsets(top: insets.top, left: insets.left, bottom: insets.bottom, right: insets.right))
         let latitudes = points.map(\.latitude)
         let longitudes = points.map(\.longitude)
         guard let minLat = latitudes.min(), let maxLat = latitudes.max(),
               let minLon = longitudes.min(), let maxLon = longitudes.max() else { return }
-        let latSpan = max(maxLat - minLat, 0.002)
-        let lonSpan = max(maxLon - minLon, 0.002)
-        // 위도 범위 대비 위·아래로 더 잡을 비율
-        let (top, bottom): (Double, Double) = switch layout {
-        case .searchResults: (0.5, 1.2)
-        case .route: (0.8, 0.5)
-        case .routeWithSheet: (0.9, 1.3)
-        }
+        // 보이는 영역 안에서도 가장자리에 붙지 않게(출발·도착 말풍선이 잘리지 않게) 범위를 조금 넓힌다.
+        // 한 점이면 최소 범위로 과하게 확대되지 않게 한다.
+        let latMargin = max(maxLat - minLat, Self.minFitSpan) * Self.fitEdgeRatio
+        let lonMargin = max(maxLon - minLon, Self.minFitSpan) * Self.fitEdgeRatio
         let area = AreaRect(
-            southWest: MapPoint(longitude: minLon - lonSpan * 0.1, latitude: minLat - latSpan * bottom),
-            northEast: MapPoint(longitude: maxLon + lonSpan * 0.1, latitude: maxLat + latSpan * top)
+            southWest: MapPoint(longitude: minLon - lonMargin, latitude: minLat - latMargin),
+            northEast: MapPoint(longitude: maxLon + lonMargin, latitude: maxLat + latMargin)
         )
         map.animateCamera(
             cameraUpdate: CameraUpdate.make(area: area, levelLimit: 17),
             options: CameraAnimationOptions(autoElevation: false, consecutive: false, durationInMillis: Self.cameraAnimationMillis)
         )
     }
+
+    /// 한 점이거나 아주 좁게 모였을 때의 최소 범위(도).
+    private static let minFitSpan = 0.002
+    /// 범위에 더하는 가장자리 여백 비율.
+    private static let fitEdgeRatio = 0.15
 
     /// Dart: controller.showPlaceMarkers → 검색 결과 번호 핀.
     /// 같은 목록에서 선택만 바뀌면 핀을 다시 만들지 않고 스타일만 바꾼다. 핀 탭은 events.placeMarkerTapped로 올린다.

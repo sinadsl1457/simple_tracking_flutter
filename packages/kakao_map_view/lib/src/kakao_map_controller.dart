@@ -14,9 +14,10 @@ class KakaoMapController {
   Future<void> moveCamera(LatLng point, {int zoom = 16}) =>
       _api.moveCamera(point, zoom);
 
-  /// 지점이 모두 보이게 맞춘다. [layout]은 위·아래 UI가 가리는 정도.
-  Future<void> fitCamera(List<LatLng> points, MapFitLayout layout) =>
-      _api.fitCamera(points, layout);
+  /// 지점이 모두 보이게 맞춘다. [insets]는 지도 위를 앱 UI가 가리는 여백(논리 픽셀)으로,
+  /// 지점들은 그 안쪽 보이는 영역에 들어온다.
+  Future<void> fitCamera(List<LatLng> points, MapInsets insets) =>
+      _api.fitCamera(points, insets);
 
   /// 번호 핀을 다시 그린다. 같은 목록에서 [selectedId]만 바뀌면 스타일만 바꾼다(깜빡임 없음).
   /// 빈 목록이면 핀을 모두 지운다. → Swift showPlaceMarkers

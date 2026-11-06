@@ -26,16 +26,20 @@ class CameraPosition {
   int zoom;
 }
 
-/// 카메라를 여러 지점에 맞출 때 화면의 어떤 부분이 UI에 가려지는지.
-enum MapFitLayout {
-  /// 위: 검색창+칩, 아래: 큰 하단 시트
-  searchResults,
+/// 지도 위를 앱 UI(검색창, 하단 시트 등)가 가리는 여백. 논리 픽셀(Flutter 단위).
+/// fitCamera는 지점들을 이 여백 안쪽, 실제로 보이는 영역에 맞춘다.
+class MapInsets {
+  MapInsets({
+    required this.top,
+    required this.bottom,
+    required this.left,
+    required this.right,
+  });
 
-  /// 위: 출발·도착 카드와 탭, 아래: 작은 요약 카드
-  route,
-
-  /// 위: 출발·도착 카드와 탭, 아래: 큰 하단 시트(대중교통 목록)
-  routeWithSheet,
+  double top;
+  double bottom;
+  double left;
+  double right;
 }
 
 enum RouteLineKind { car, walk, bus, subway }
@@ -107,8 +111,8 @@ enum MapGesture {
 abstract class KakaoMapHostApi {
   void moveCamera(LatLng point, int zoom);
 
-  /// 지점이 모두 보이게 맞춘다.
-  void fitCamera(List<LatLng> points, MapFitLayout layout);
+  /// 지점이 모두 [insets] 안쪽(UI에 가리지 않는 영역)에 보이게 맞춘다.
+  void fitCamera(List<LatLng> points, MapInsets insets);
 
   void showPlaceMarkers(List<PlaceMarker> markers, String? selectedId);
 

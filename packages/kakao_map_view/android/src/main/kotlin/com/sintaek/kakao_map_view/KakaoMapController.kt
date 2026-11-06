@@ -144,21 +144,27 @@ internal class KakaoMapController(
 
     // region KakaoMapHostApi (Pigeon: Dart → Native)
 
-    /** Dart: controller.moveCamera → 카메라를 한 지점으로 애니메이션 이동. */
+    /** Dart: controller.moveCamera → 카메라를 한 지점으로 애니메이션 이동. 화면 한가운데에 오도록 여백을 비운다. */
     override fun moveCamera(point: LatLng, zoom: Long) {
+        map.setPadding(0, 0, 0, 0)
         map.moveCamera(
             CameraUpdateFactory.newCenterPosition(point.toKakao(), zoom.toInt()),
             CameraAnimation.from(CAMERA_MOVE_MILLIS, true, true),
         )
     }
 
-    /** 지점이 모두 보이게 맞춘다. 위·아래 UI가 지도를 가리는 만큼 영역을 넓혀 잡는다(CameraFit.kt). */
-    override fun fitCamera(points: List<LatLng>, layout: MapFitLayout) {
+    /**
+     * Dart: controller.fitCamera → 지점이 모두 [insets] 안쪽(앱 UI에 가리지 않는 영역)에 보이게 맞춘다.
+     * SDK 여백(setPadding)에 UI가 가리는 만큼을 넣으면 fitMapPoints가 그 안쪽에 맞춘다.
+     * 여백은 다음 moveCamera가 비울 때까지 남는다(그동안 내 위치 따라가기도 보이는 영역 기준).
+     */
+    override fun fitCamera(points: List<LatLng>, insets: MapInsets) {
         if (points.isEmpty()) return
-        // 한 점이어도 같은 계산을 쓴다. UI에 가리지 않는 곳에 오고, 최소 범위가 있어 과하게 확대되지 않는다.
-        val (southWest, northEast) = fitCorners(points, layout.insets)
+        val density = context.resources.displayMetrics.density
+        fun px(dp: Double) = (dp * density).toInt()
+        map.setPadding(px(insets.left), px(insets.top), px(insets.right), px(insets.bottom))
         map.moveCamera(
-            CameraUpdateFactory.fitMapPoints(arrayOf(southWest.toKakao(), northEast.toKakao()), 0, MAX_FIT_ZOOM),
+            CameraUpdateFactory.fitMapPoints(points.map { it.toKakao() }.toTypedArray(), px(FIT_EDGE_DP), MAX_FIT_ZOOM),
             CameraAnimation.from(CAMERA_MOVE_MILLIS, true, true),
         )
     }
@@ -456,6 +462,9 @@ internal class KakaoMapController(
         /** 나침반 값 사이를 잇는 회전 시간. 센서 갱신(약 60ms)보다 조금 길게 잡아 끊김 없이 돈다. */
         const val CONE_ROTATE_MILLIS = 150
         const val MAX_FIT_ZOOM = 17
+
+        /** 보이는 영역 안에서도 지점이 가장자리에 붙지 않게 남기는 여백(dp). 출발·도착 말풍선이 잘리지 않을 만큼. */
+        const val FIT_EDGE_DP = 48.0
 
         /** 선택된 마커가 다른 마커에 가려지지 않게 rank를 가장 높게 준다. 번호가 작을수록 위에 그린다. */
         fun placeRank(number: Long, selected: Boolean): Long = if (selected) 1_000L else 1_000L - number

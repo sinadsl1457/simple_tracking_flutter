@@ -160,8 +160,13 @@ Native KakaoMapViewPlugin (등록) → KakaoMapViewFactory.create
 | 정리 | `deinit` (PlatformView에 dispose 없음) | `PlatformView.dispose()` |
 | SDK 저장소 | SPM `KakaoMapsSDK-SPM` | 카카오 maven 저장소. **앱의 `android/build.gradle.kts`에도 추가해야 한다** |
 | FlutterApi 호출 | `Task { try? await … }` | Pigeon Kotlin이 `suspend` → 코루틴(`Dispatchers.Main`) |
-| fitCamera 계산 | 비율로 영역 확장 | 네이티브 Android 앱의 `CameraFit.kt` (보이는 띠 기준) |
+| fitCamera 여백 | `KakaoMap.setMargins` + `CameraUpdate.make(area:)` | `KakaoMap.setPadding` + `fitMapPoints` |
 | 내 위치 마커 이동 | `Poi.moveAt` / `rotateAt` (duration ms) | `Label.moveTo` / `rotateTo` (duration ms) |
+
+**카메라 맞추기(fitCamera)** — Dart가 지도 위를 가리는 UI 높이(`MapInsets`, 논리 픽셀)를 넘기고, 네이티브는 SDK 여백에 넣은 뒤 그 안쪽에 맞춘다.
+- 위: MapScreen이 상단 UI(검색창·칩 또는 길찾기 카드·탭)를 `MeasureSize`로 잰 높이. 아래: 시트가 **멈출** 높이(중간 = 화면의 45%) 또는 요약 카드 높이. 시트는 펼쳐지는 중이라 지금 높이를 쓰면 틀린다.
+- 예전 방식(경로 높이의 고정 배수로 위·아래를 늘림)은 옆으로 긴 경로에서 여백이 모자라 출발·도착이 탭·시트에 가려졌다.
+- 여백은 다음 `moveCamera`가 비운다(한 지점 이동은 화면 한가운데 기준).
 
 **내 위치 마커 애니메이션** — Dart는 `updateMyLocation(MyLocation)`만 보내고, 부드럽게 잇는 건 네이티브가 한다.
 - 이동·회전 모두 1초(GPS 갱신 간격)에 걸쳐 이전 값에서 새 값으로. 짧으면 매초 멈칫하고, 길면 다음 갱신이 중간에 끊는다.

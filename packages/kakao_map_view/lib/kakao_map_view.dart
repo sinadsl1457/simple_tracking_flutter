@@ -9,7 +9,7 @@ export 'src/messages.g.dart'
     show
         CameraPosition,
         LatLng,
-        MapFitLayout,
+        MapInsets,
         MapFollowMode,
         MapGesture,
         MyLocation,

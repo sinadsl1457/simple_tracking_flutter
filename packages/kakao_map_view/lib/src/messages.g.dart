@@ -10,9 +10,9 @@ import 'package:flutter/services.dart';
 import 'package:meta/meta.dart' show immutable, protected, visibleForTesting;
 
 Object? _extractReplyValueOrThrow(
-  List<Object?>? replyList,
-  String channelName, {
-  required bool isNullValid,
+    List<Object?>? replyList,
+    String channelName, {
+    required bool isNullValid,
 }) {
   if (replyList == null) {
     throw PlatformException(
@@ -34,11 +34,8 @@ Object? _extractReplyValueOrThrow(
   return replyList.firstOrNull;
 }
 
-List<Object?> wrapResponse({
-  Object? result,
-  PlatformException? error,
-  bool empty = false,
-}) {
+
+List<Object?> wrapResponse({Object? result, PlatformException? error, bool empty = false}) {
   if (empty) {
     return <Object?>[];
   }
@@ -47,7 +44,6 @@ List<Object?> wrapResponse({
   }
   return <Object?>[error.code, error.message, error.details];
 }
-
 bool _deepEquals(Object? a, Object? b) {
   if (identical(a, b)) {
     return true;
@@ -60,9 +56,8 @@ bool _deepEquals(Object? a, Object? b) {
   }
   if (a is List && b is List) {
     return a.length == b.length &&
-        a.indexed.every(
-          ((int, dynamic) item) => _deepEquals(item.$2, b[item.$1]),
-        );
+        a.indexed
+            .every(((int, dynamic) item) => _deepEquals(item.$2, b[item.$1]));
   }
   if (a is Map && b is Map) {
     if (a.length != b.length) {
@@ -111,55 +106,51 @@ int _deepHash(Object? value) {
   return value.hashCode;
 }
 
-/// 카메라를 여러 지점에 맞출 때 화면의 어떤 부분이 UI에 가려지는지.
-enum MapFitLayout {
-  /// 위: 검색창+칩, 아래: 큰 하단 시트
-  searchResults,
 
-  /// 위: 출발·도착 카드와 탭, 아래: 작은 요약 카드
-  route,
-
-  /// 위: 출발·도착 카드와 탭, 아래: 큰 하단 시트(대중교통 목록)
-  routeWithSheet,
+enum RouteLineKind {
+  car,
+  walk,
+  bus,
+  subway;
 }
-
-enum RouteLineKind { car, walk, bus, subway }
 
 /// 카메라가 내 위치를 따라가는 방식.
 enum MapFollowMode {
   /// 따라가지 않는다.
   none,
-
   /// 카메라 중심이 내 위치 마커를 따라간다. 지도는 북쪽이 위.
   follow,
-
   /// 따라가면서 지도도 돌린다. 이동 중에는 진행 방향, 정지 중에는 폰이 향한 방향이 위.
-  followWithHeading,
+  followWithHeading;
 }
 
 /// 사용자가 지도를 직접 움직인 제스처. 따라가기 해제 판단에 쓴다.
 enum MapGesture {
   /// 한 손가락 드래그.
   pan,
-
   /// 두 손가락 회전.
-  rotate,
+  rotate;
 }
 
 class LatLng {
-  LatLng({required this.latitude, required this.longitude});
+  LatLng({
+    required this.latitude,
+    required this.longitude,
+  });
 
   double latitude;
 
   double longitude;
 
   List<Object?> _toList() {
-    return <Object?>[latitude, longitude];
+    return <Object?>[
+      latitude,
+      longitude,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static LatLng decode(Object result) {
     result as List<Object?>;
@@ -178,8 +169,7 @@ class LatLng {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(latitude, other.latitude) &&
-        _deepEquals(longitude, other.longitude);
+    return _deepEquals(latitude, other.latitude) && _deepEquals(longitude, other.longitude);
   }
 
   @override
@@ -194,19 +184,24 @@ class LatLng {
 
 /// 카메라가 멈췄을 때의 위치. 화면 중심과 줌 레벨.
 class CameraPosition {
-  CameraPosition({required this.center, required this.zoom});
+  CameraPosition({
+    required this.center,
+    required this.zoom,
+  });
 
   LatLng center;
 
   int zoom;
 
   List<Object?> _toList() {
-    return <Object?>[center, zoom];
+    return <Object?>[
+      center,
+      zoom,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static CameraPosition decode(Object result) {
     result as List<Object?>;
@@ -238,9 +233,75 @@ class CameraPosition {
   }
 }
 
+/// 지도 위를 앱 UI(검색창, 하단 시트 등)가 가리는 여백. 논리 픽셀(Flutter 단위).
+/// fitCamera는 지점들을 이 여백 안쪽, 실제로 보이는 영역에 맞춘다.
+class MapInsets {
+  MapInsets({
+    required this.top,
+    required this.bottom,
+    required this.left,
+    required this.right,
+  });
+
+  double top;
+
+  double bottom;
+
+  double left;
+
+  double right;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      top,
+      bottom,
+      left,
+      right,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static MapInsets decode(Object result) {
+    result as List<Object?>;
+    return MapInsets(
+      top: result[0]! as double,
+      bottom: result[1]! as double,
+      left: result[2]! as double,
+      right: result[3]! as double,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! MapInsets || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(top, other.top) && _deepEquals(bottom, other.bottom) && _deepEquals(left, other.left) && _deepEquals(right, other.right);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'MapInsets(top: $top, bottom: $bottom, left: $left, right: $right)';
+  }
+}
+
 /// 지도에 표시할 검색 결과 하나.
 class PlaceMarker {
-  PlaceMarker({required this.id, required this.point, required this.number});
+  PlaceMarker({
+    required this.id,
+    required this.point,
+    required this.number,
+  });
 
   String id;
 
@@ -250,12 +311,15 @@ class PlaceMarker {
   int number;
 
   List<Object?> _toList() {
-    return <Object?>[id, point, number];
+    return <Object?>[
+      id,
+      point,
+      number,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static PlaceMarker decode(Object result) {
     result as List<Object?>;
@@ -275,9 +339,7 @@ class PlaceMarker {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(id, other.id) &&
-        _deepEquals(point, other.point) &&
-        _deepEquals(number, other.number);
+    return _deepEquals(id, other.id) && _deepEquals(point, other.point) && _deepEquals(number, other.number);
   }
 
   @override
@@ -292,7 +354,11 @@ class PlaceMarker {
 
 /// 경로 선 한 구간. 기본은 종류마다 정해진 색이다.
 class RouteLine {
-  RouteLine({required this.kind, required this.points, this.colorArgb});
+  RouteLine({
+    required this.kind,
+    required this.points,
+    this.colorArgb,
+  });
 
   RouteLineKind kind;
 
@@ -302,12 +368,15 @@ class RouteLine {
   int? colorArgb;
 
   List<Object?> _toList() {
-    return <Object?>[kind, points, colorArgb];
+    return <Object?>[
+      kind,
+      points,
+      colorArgb,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static RouteLine decode(Object result) {
     result as List<Object?>;
@@ -327,9 +396,7 @@ class RouteLine {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(kind, other.kind) &&
-        _deepEquals(points, other.points) &&
-        _deepEquals(colorArgb, other.colorArgb);
+    return _deepEquals(kind, other.kind) && _deepEquals(points, other.points) && _deepEquals(colorArgb, other.colorArgb);
   }
 
   @override
@@ -344,7 +411,11 @@ class RouteLine {
 
 /// 경로 전체: 선들과 출발·도착 마커 위치.
 class RouteOverlay {
-  RouteOverlay({required this.lines, required this.start, required this.end});
+  RouteOverlay({
+    required this.lines,
+    required this.start,
+    required this.end,
+  });
 
   List<RouteLine> lines;
 
@@ -353,12 +424,15 @@ class RouteOverlay {
   LatLng end;
 
   List<Object?> _toList() {
-    return <Object?>[lines, start, end];
+    return <Object?>[
+      lines,
+      start,
+      end,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static RouteOverlay decode(Object result) {
     result as List<Object?>;
@@ -378,9 +452,7 @@ class RouteOverlay {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(lines, other.lines) &&
-        _deepEquals(start, other.start) &&
-        _deepEquals(end, other.end);
+    return _deepEquals(lines, other.lines) && _deepEquals(start, other.start) && _deepEquals(end, other.end);
   }
 
   @override
@@ -394,7 +466,10 @@ class RouteOverlay {
 }
 
 class MyLocation {
-  MyLocation({required this.point, this.bearing});
+  MyLocation({
+    required this.point,
+    this.bearing,
+  });
 
   LatLng point;
 
@@ -402,12 +477,14 @@ class MyLocation {
   double? bearing;
 
   List<Object?> _toList() {
-    return <Object?>[point, bearing];
+    return <Object?>[
+      point,
+      bearing,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static MyLocation decode(Object result) {
     result as List<Object?>;
@@ -426,8 +503,7 @@ class MyLocation {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(point, other.point) &&
-        _deepEquals(bearing, other.bearing);
+    return _deepEquals(point, other.point) && _deepEquals(bearing, other.bearing);
   }
 
   @override
@@ -440,6 +516,7 @@ class MyLocation {
   }
 }
 
+
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
   @override
@@ -447,34 +524,34 @@ class _PigeonCodec extends StandardMessageCodec {
     if (value is int) {
       buffer.putUint8(4);
       buffer.putInt64(value);
-    } else if (value is MapFitLayout) {
+    }    else if (value is RouteLineKind) {
       buffer.putUint8(129);
       writeValue(buffer, value.index);
-    } else if (value is RouteLineKind) {
+    }    else if (value is MapFollowMode) {
       buffer.putUint8(130);
       writeValue(buffer, value.index);
-    } else if (value is MapFollowMode) {
+    }    else if (value is MapGesture) {
       buffer.putUint8(131);
       writeValue(buffer, value.index);
-    } else if (value is MapGesture) {
+    }    else if (value is LatLng) {
       buffer.putUint8(132);
-      writeValue(buffer, value.index);
-    } else if (value is LatLng) {
+      writeValue(buffer, value.encode());
+    }    else if (value is CameraPosition) {
       buffer.putUint8(133);
       writeValue(buffer, value.encode());
-    } else if (value is CameraPosition) {
+    }    else if (value is MapInsets) {
       buffer.putUint8(134);
       writeValue(buffer, value.encode());
-    } else if (value is PlaceMarker) {
+    }    else if (value is PlaceMarker) {
       buffer.putUint8(135);
       writeValue(buffer, value.encode());
-    } else if (value is RouteLine) {
+    }    else if (value is RouteLine) {
       buffer.putUint8(136);
       writeValue(buffer, value.encode());
-    } else if (value is RouteOverlay) {
+    }    else if (value is RouteOverlay) {
       buffer.putUint8(137);
       writeValue(buffer, value.encode());
-    } else if (value is MyLocation) {
+    }    else if (value is MyLocation) {
       buffer.putUint8(138);
       writeValue(buffer, value.encode());
     } else {
@@ -487,20 +564,19 @@ class _PigeonCodec extends StandardMessageCodec {
     switch (type) {
       case 129:
         final value = readValue(buffer) as int?;
-        return value == null ? null : MapFitLayout.values[value];
+        return value == null ? null : RouteLineKind.values[value];
       case 130:
         final value = readValue(buffer) as int?;
-        return value == null ? null : RouteLineKind.values[value];
+        return value == null ? null : MapFollowMode.values[value];
       case 131:
         final value = readValue(buffer) as int?;
-        return value == null ? null : MapFollowMode.values[value];
-      case 132:
-        final value = readValue(buffer) as int?;
         return value == null ? null : MapGesture.values[value];
-      case 133:
+      case 132:
         return LatLng.decode(readValue(buffer)!);
-      case 134:
+      case 133:
         return CameraPosition.decode(readValue(buffer)!);
+      case 134:
+        return MapInsets.decode(readValue(buffer)!);
       case 135:
         return PlaceMarker.decode(readValue(buffer)!);
       case 136:
@@ -522,143 +598,128 @@ class KakaoMapHostApi {
   /// available for dependency injection. If it is left null, the default
   /// BinaryMessenger will be used which routes to the host platform.
   KakaoMapHostApi({
-    BinaryMessenger? binaryMessenger,
-    String messageChannelSuffix = '',
-  }) : pigeonVar_binaryMessenger = binaryMessenger,
-       pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty
-           ? '.$messageChannelSuffix'
-           : '';
+      BinaryMessenger? binaryMessenger, 
+      String messageChannelSuffix = '', 
+      })
+      : pigeonVar_binaryMessenger = binaryMessenger,
+        pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
 
   final BinaryMessenger? pigeonVar_binaryMessenger;
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
 
   final String pigeonVar_messageChannelSuffix;
 
+
   Future<void> moveCamera(LatLng point, int zoom) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.moveCamera$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.moveCamera$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[point, zoom],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[point, zoom]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
-  /// 지점이 모두 보이게 맞춘다.
-  Future<void> fitCamera(List<LatLng> points, MapFitLayout layout) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.fitCamera$pigeonVar_messageChannelSuffix';
+  /// 지점이 모두 [insets] 안쪽(UI에 가리지 않는 영역)에 보이게 맞춘다.
+  Future<void> fitCamera(List<LatLng> points, MapInsets insets) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.fitCamera$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[points, layout],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[points, insets]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
-  Future<void> showPlaceMarkers(
-    List<PlaceMarker> markers,
-    String? selectedId,
-  ) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.showPlaceMarkers$pigeonVar_messageChannelSuffix';
+  Future<void> showPlaceMarkers(List<PlaceMarker> markers, String? selectedId) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.showPlaceMarkers$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[markers, selectedId],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[markers, selectedId]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   /// null이면 경로를 지운다.
   Future<void> showRoute(RouteOverlay? overlay) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.showRoute$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.showRoute$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[overlay],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[overlay]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   /// null이면 내 위치 마커를 지운다.
   Future<void> updateMyLocation(MyLocation? location) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.updateMyLocation$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.updateMyLocation$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[location],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[location]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   /// 내 위치 마커가 아직 없으면 마커가 생길 때 따라가기 시작한다.
   Future<void> setFollowMode(MapFollowMode mode) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.setFollowMode$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.setFollowMode$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[mode],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[mode]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 }
 
@@ -680,20 +741,16 @@ abstract class KakaoMapFlutterApi {
   /// 사용자가 드래그·회전으로 카메라를 움직이기 시작했다(줌 제스처는 보내지 않는다).
   void onUserGesture(MapGesture gesture);
 
-  static void setUp(
-    KakaoMapFlutterApi? api, {
-    BinaryMessenger? binaryMessenger,
+  static void setUp(KakaoMapFlutterApi? api, {
+    BinaryMessenger? binaryMessenger, 
     String messageChannelSuffix = '',
-  }) {
-    messageChannelSuffix = messageChannelSuffix.isNotEmpty
-        ? '.$messageChannelSuffix'
-        : '';
+  }) 
+{
+    messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.kakao_map_view.KakaoMapFlutterApi.onMapReady$messageChannelSuffix',
-        pigeonChannelCodec,
-        binaryMessenger: binaryMessenger,
-      );
+          'dev.flutter.pigeon.kakao_map_view.KakaoMapFlutterApi.onMapReady$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
@@ -703,20 +760,16 @@ abstract class KakaoMapFlutterApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          } catch (e) {
-            return wrapResponse(
-              error: PlatformException(code: 'error', message: e.toString()),
-            );
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
           }
         });
       }
     }
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.kakao_map_view.KakaoMapFlutterApi.onMapError$messageChannelSuffix',
-        pigeonChannelCodec,
-        binaryMessenger: binaryMessenger,
-      );
+          'dev.flutter.pigeon.kakao_map_view.KakaoMapFlutterApi.onMapError$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
@@ -728,20 +781,16 @@ abstract class KakaoMapFlutterApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          } catch (e) {
-            return wrapResponse(
-              error: PlatformException(code: 'error', message: e.toString()),
-            );
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
           }
         });
       }
     }
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.kakao_map_view.KakaoMapFlutterApi.onCameraIdle$messageChannelSuffix',
-        pigeonChannelCodec,
-        binaryMessenger: binaryMessenger,
-      );
+          'dev.flutter.pigeon.kakao_map_view.KakaoMapFlutterApi.onCameraIdle$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
@@ -753,20 +802,16 @@ abstract class KakaoMapFlutterApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          } catch (e) {
-            return wrapResponse(
-              error: PlatformException(code: 'error', message: e.toString()),
-            );
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
           }
         });
       }
     }
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.kakao_map_view.KakaoMapFlutterApi.onMarkerTapped$messageChannelSuffix',
-        pigeonChannelCodec,
-        binaryMessenger: binaryMessenger,
-      );
+          'dev.flutter.pigeon.kakao_map_view.KakaoMapFlutterApi.onMarkerTapped$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
@@ -778,20 +823,16 @@ abstract class KakaoMapFlutterApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          } catch (e) {
-            return wrapResponse(
-              error: PlatformException(code: 'error', message: e.toString()),
-            );
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
           }
         });
       }
     }
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.kakao_map_view.KakaoMapFlutterApi.onUserGesture$messageChannelSuffix',
-        pigeonChannelCodec,
-        binaryMessenger: binaryMessenger,
-      );
+          'dev.flutter.pigeon.kakao_map_view.KakaoMapFlutterApi.onUserGesture$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
@@ -803,10 +844,8 @@ abstract class KakaoMapFlutterApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          } catch (e) {
-            return wrapResponse(
-              error: PlatformException(code: 'error', message: e.toString()),
-            );
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
           }
         });
       }
