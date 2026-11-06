@@ -109,7 +109,8 @@ enum MapGesture {
 /// 지도 인스턴스마다 따로 연결한다.
 @HostApi()
 abstract class KakaoMapHostApi {
-  void moveCamera(LatLng point, int zoom);
+  /// [animated]가 false면 애니메이션 없이 바로 놓는다(내 위치처럼 멀리서 날아오면 어색한 이동).
+  void moveCamera(LatLng point, int zoom, bool animated);
 
   /// 지점이 모두 [insets] 안쪽(UI에 가리지 않는 영역)에 보이게 맞춘다.
   void fitCamera(List<LatLng> points, MapInsets insets);

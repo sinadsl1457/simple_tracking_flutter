@@ -684,7 +684,8 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
  * Generated interface from Pigeon that represents a handler of messages from Flutter.
  */
 interface KakaoMapHostApi {
-  fun moveCamera(point: LatLng, zoom: Long)
+  /** [animated]가 false면 애니메이션 없이 바로 놓는다(내 위치처럼 멀리서 날아오면 어색한 이동). */
+  fun moveCamera(point: LatLng, zoom: Long, animated: Boolean)
   /** 지점이 모두 [insets] 안쪽(UI에 가리지 않는 영역)에 보이게 맞춘다. */
   fun fitCamera(points: List<LatLng>, insets: MapInsets)
   fun showPlaceMarkers(markers: List<PlaceMarker>, selectedId: String?)
@@ -711,8 +712,9 @@ interface KakaoMapHostApi {
             val args = message as List<Any?>
             val pointArg = args[0] as LatLng
             val zoomArg = args[1] as Long
+            val animatedArg = args[2] as Boolean
             val wrapped: List<Any?> = try {
-              api.moveCamera(pointArg, zoomArg)
+              api.moveCamera(pointArg, zoomArg, animatedArg)
               listOf(null)
             } catch (exception: Throwable) {
               MessagesPigeonUtils.wrapError(exception)

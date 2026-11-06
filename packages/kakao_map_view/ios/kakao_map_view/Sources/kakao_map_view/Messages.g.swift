@@ -630,7 +630,8 @@ class MessagesPigeonCodec: FlutterStandardMessageCodec, @unchecked Sendable {
 ///
 /// Generated protocol from Pigeon that represents a handler of messages from Flutter.
 protocol KakaoMapHostApi {
-  func moveCamera(point: LatLng, zoom: Int64) throws
+  /// [animated]가 false면 애니메이션 없이 바로 놓는다(내 위치처럼 멀리서 날아오면 어색한 이동).
+  func moveCamera(point: LatLng, zoom: Int64, animated: Bool) throws
   /// 지점이 모두 [insets] 안쪽(UI에 가리지 않는 영역)에 보이게 맞춘다.
   func fitCamera(points: [LatLng], insets: MapInsets) throws
   func showPlaceMarkers(markers: [PlaceMarker], selectedId: String?) throws
@@ -648,14 +649,16 @@ class KakaoMapHostApiSetup {
   /// Sets up an instance of `KakaoMapHostApi` to handle messages through the `binaryMessenger`.
   static func setUp(binaryMessenger: FlutterBinaryMessenger, api: KakaoMapHostApi?, messageChannelSuffix: String = "") {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+    /// [animated]가 false면 애니메이션 없이 바로 놓는다(내 위치처럼 멀리서 날아오면 어색한 이동).
     let moveCameraChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.moveCamera\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       moveCameraChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
         let pointArg = args[0] as! LatLng
         let zoomArg = args[1] as! Int64
+        let animatedArg = args[2] as! Bool
         do {
-          try api.moveCamera(point: pointArg, zoom: zoomArg)
+          try api.moveCamera(point: pointArg, zoom: zoomArg, animated: animatedArg)
           reply(wrapResult(nil))
         } catch {
           reply(wrapError(error))

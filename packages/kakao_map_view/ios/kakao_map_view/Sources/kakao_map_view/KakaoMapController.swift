@@ -70,6 +70,8 @@ final class KakaoMapController: NSObject {
     private weak var container: KMViewContainer?
 
     private var map: KakaoMap? { controller?.getView(ID.mapView) as? KakaoMap }
+    /// fitCamera가 SDK 여백(setMargins)을 넣어 둔 상태인지. moveCamera가 있을 때만 비운다.
+    private var hasFitMargins = false
     private var myLocationPoi: Poi?
     private var myLocationStyle: String?
     /// 마지막으로 옮긴 내 위치. 다음 위치까지 거리로 애니메이션 여부를 정한다.
@@ -402,15 +404,23 @@ final class KakaoMapController: NSObject {
 // Pigeon 핸들러는 플랫폼(메인) 스레드에서 불린다. 생성된 프로토콜에 @MainActor가 없어서
 // @preconcurrency로 메인 액터 격리를 그대로 맞춘다.
 extension KakaoMapController: @preconcurrency KakaoMapHostApi {
-    /// Dart: controller.moveCamera → 카메라를 한 지점으로 애니메이션 이동.
-    func moveCamera(point: LatLng, zoom: Int64) {
+    /// Dart: controller.moveCamera → 카메라를 한 지점으로 옮긴다. animated가 false면 바로 놓는다.
+    /// fitCamera가 여백을 남겼으면 비워 화면 한가운데 기준으로 되돌린다(여백이 없으면 건드리지 않는다).
+    func moveCamera(point: LatLng, zoom: Int64, animated: Bool) {
         guard let map else { return }
-        // 화면 한가운데에 오도록 fitCamera가 남긴 여백을 비운다.
-        map.resetMargins()
-        map.animateCamera(
-            cameraUpdate: CameraUpdate.make(target: Self.mapPoint(point), zoomLevel: Int(zoom), mapView: map),
-            options: CameraAnimationOptions(autoElevation: false, consecutive: false, durationInMillis: Self.cameraAnimationMillis)
-        )
+        if hasFitMargins {
+            map.resetMargins()
+            hasFitMargins = false
+        }
+        let update = CameraUpdate.make(target: Self.mapPoint(point), zoomLevel: Int(zoom), mapView: map)
+        if animated {
+            map.animateCamera(
+                cameraUpdate: update,
+                options: CameraAnimationOptions(autoElevation: false, consecutive: false, durationInMillis: Self.cameraAnimationMillis)
+            )
+        } else {
+            map.moveCamera(update)
+        }
     }
 
     /// Dart: controller.fitCamera → 지점이 모두 insets 안쪽(앱 UI에 가리지 않는 영역)에 보이게 맞춘다.
@@ -419,6 +429,7 @@ extension KakaoMapController: @preconcurrency KakaoMapHostApi {
     func fitCamera(points: [LatLng], insets: MapInsets) {
         guard let map, !points.isEmpty else { return }
         map.setMargins(UIEdgeInsets(top: insets.top, left: insets.left, bottom: insets.bottom, right: insets.right))
+        hasFitMargins = true
         let latitudes = points.map(\.latitude)
         let longitudes = points.map(\.longitude)
         guard let minLat = latitudes.min(), let maxLat = latitudes.max(),

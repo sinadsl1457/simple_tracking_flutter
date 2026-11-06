@@ -10,9 +10,13 @@ class KakaoMapController {
 
   final KakaoMapHostApi _api;
 
-  /// 카메라를 한 지점으로 옮긴다(애니메이션). → Swift KakaoMapController.moveCamera
-  Future<void> moveCamera(LatLng point, {int zoom = 16}) =>
-      _api.moveCamera(point, zoom);
+  /// 카메라를 한 지점으로 옮긴다. [animated]가 false면 애니메이션 없이 바로 놓는다.
+  /// → Swift/Kotlin KakaoMapController.moveCamera
+  Future<void> moveCamera(
+    LatLng point, {
+    int zoom = 16,
+    bool animated = true,
+  }) => _api.moveCamera(point, zoom, animated);
 
   /// 지점이 모두 보이게 맞춘다. [insets]는 지도 위를 앱 UI가 가리는 여백(논리 픽셀)으로,
   /// 지점들은 그 안쪽 보이는 영역에 들어온다.

@@ -153,8 +153,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
   }
 
-  void _moveCamera(GeoPoint point, {required int zoom}) =>
-      _camera((m) => m.moveCamera(point.toLatLng(), zoom: zoom));
+  void _moveCamera(GeoPoint point, {required int zoom, bool animated = true}) =>
+      _camera(
+        (m) => m.moveCamera(point.toLatLng(), zoom: zoom, animated: animated),
+      );
 
   /// [points]가 위 UI와 아래 UI([bottomCovered]) 사이, 실제로 보이는 곳에 들어오게 맞춘다.
   /// 아래 시트는 펼쳐지는 중일 수 있어 지금 높이가 아니라 멈출 높이를 넘겨받는다.
@@ -315,9 +317,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   // ── 이펙트 ──
 
   void _onMapEffect(BuildContext context, MapEffect effect) => switch (effect) {
+    // 내 위치(첫 위치, 내 위치 버튼)는 애니메이션 없이 바로 놓는다.
+    // 멀리서 날아오면 어색하고, 긴 이동 애니메이션은 도중에 끊겨 엉뚱한 곳에 멈출 수 있다.
     MoveCameraEffect(:final point, :final zoom) => _moveCamera(
       point,
       zoom: zoom,
+      animated: false,
     ),
     MapFailureEffect(:final failure) => _showToast(failure.userMessage),
     FindingLocationEffect() => _showToast('현재 위치를 찾고 있어요'),

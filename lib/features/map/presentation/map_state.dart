@@ -42,6 +42,7 @@ abstract class MapState with _$MapState {
 
 @freezed
 sealed class MapEffect with _$MapEffect {
+  /// 내 위치로 카메라를 옮긴다(첫 위치, 내 위치 버튼). 화면은 애니메이션 없이 바로 놓는다.
   const factory MapEffect.moveCamera(GeoPoint point, {required int zoom}) =
       MoveCameraEffect;
   const factory MapEffect.showFailure(Failure failure) = MapFailureEffect;

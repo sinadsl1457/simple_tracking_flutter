@@ -610,14 +610,15 @@ class KakaoMapHostApi {
   final String pigeonVar_messageChannelSuffix;
 
 
-  Future<void> moveCamera(LatLng point, int zoom) async {
+  /// [animated]가 false면 애니메이션 없이 바로 놓는다(내 위치처럼 멀리서 날아오면 어색한 이동).
+  Future<void> moveCamera(LatLng point, int zoom, bool animated) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.kakao_map_view.KakaoMapHostApi.moveCamera$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[point, zoom]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[point, zoom, animated]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(

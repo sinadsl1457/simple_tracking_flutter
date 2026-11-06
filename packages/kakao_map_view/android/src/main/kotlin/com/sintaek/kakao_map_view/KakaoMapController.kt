@@ -144,14 +144,25 @@ internal class KakaoMapController(
 
     // region KakaoMapHostApi (Pigeon: Dart → Native)
 
-    /** Dart: controller.moveCamera → 카메라를 한 지점으로 애니메이션 이동. 화면 한가운데에 오도록 여백을 비운다. */
-    override fun moveCamera(point: LatLng, zoom: Long) {
-        map.setPadding(0, 0, 0, 0)
-        map.moveCamera(
-            CameraUpdateFactory.newCenterPosition(point.toKakao(), zoom.toInt()),
-            CameraAnimation.from(CAMERA_MOVE_MILLIS, true, true),
-        )
+    /**
+     * Dart: controller.moveCamera → 카메라를 한 지점으로 옮긴다. [animated]가 false면 바로 놓는다.
+     * fitCamera가 여백을 남겼으면 비워 화면 한가운데 기준으로 되돌린다(여백이 없으면 건드리지 않는다).
+     */
+    override fun moveCamera(point: LatLng, zoom: Long, animated: Boolean) {
+        if (hasFitPadding) {
+            map.setPadding(0, 0, 0, 0)
+            hasFitPadding = false
+        }
+        val update = CameraUpdateFactory.newCenterPosition(point.toKakao(), zoom.toInt())
+        if (animated) {
+            map.moveCamera(update, CameraAnimation.from(CAMERA_MOVE_MILLIS, true, true))
+        } else {
+            map.moveCamera(update)
+        }
     }
+
+    /** fitCamera가 SDK 여백을 넣어 둔 상태인지. */
+    private var hasFitPadding = false
 
     /**
      * Dart: controller.fitCamera → 지점이 모두 [insets] 안쪽(앱 UI에 가리지 않는 영역)에 보이게 맞춘다.
@@ -163,6 +174,7 @@ internal class KakaoMapController(
         val density = context.resources.displayMetrics.density
         fun px(dp: Double) = (dp * density).toInt()
         map.setPadding(px(insets.left), px(insets.top), px(insets.right), px(insets.bottom))
+        hasFitPadding = true
         map.moveCamera(
             CameraUpdateFactory.fitMapPoints(points.map { it.toKakao() }.toTypedArray(), px(FIT_EDGE_DP), MAX_FIT_ZOOM),
             CameraAnimation.from(CAMERA_MOVE_MILLIS, true, true),
