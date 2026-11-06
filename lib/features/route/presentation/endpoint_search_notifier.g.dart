@@ -48,7 +48,7 @@ final class EndpointSearchNotifierProvider
 }
 
 String _$endpointSearchNotifierHash() =>
-    r'3208db4c85d1264b8a04b141d17f927e3538b183';
+    r'bbc81dc372091bdf3e09211b9e5151c34abe6a4d';
 
 /// 길찾기 출발지·도착지를 고르는 검색. 지도 검색(PlaceSearchNotifier)과 달리
 /// 결과를 지도에 띄우지 않고 페이지 안 목록에서 바로 고른다. 선택 페이지가 떠 있는 동안만 산다(autoDispose).

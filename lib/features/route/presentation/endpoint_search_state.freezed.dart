@@ -16,7 +16,10 @@ T _$identity<T>(T value) => value;
 mixin _$EndpointSearchState {
 
  String get query; bool get isSubmitting;/// null이면 아직 검색하지 않았다(최근 검색어를 보여준다).
- List<Place>? get results; List<String> get recentQueries;
+/// 입력 중 새 결과가 올 때까지는 이전 결과를 그대로 둔다(깜빡임 없음).
+ List<Place>? get results;/// [results]를 찾은 검색어(정리된 형태). 그 목록에서 장소를 고르면 이 검색어를 최근 검색어에 남긴다.
+ String get resultsQuery;/// 마지막으로 찾기로 한 검색어(정리된 형태). 공백만 바뀌어 같으면 다시 찾지 않는다.
+ String get searchedFor; List<String> get recentQueries;
 /// Create a copy of EndpointSearchState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,20 +31,20 @@ $EndpointSearchStateCopyWith<EndpointSearchState> get copyWith => _$EndpointSear
 @override
 bool operator ==(Object other) {
   final _this = this as EndpointSearchState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EndpointSearchState&&(identical(other.query, _this.query) || other.query == _this.query)&&(identical(other.isSubmitting, _this.isSubmitting) || other.isSubmitting == _this.isSubmitting)&&const DeepCollectionEquality().equals(other.results, _this.results)&&const DeepCollectionEquality().equals(other.recentQueries, _this.recentQueries));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EndpointSearchState&&(identical(other.query, _this.query) || other.query == _this.query)&&(identical(other.isSubmitting, _this.isSubmitting) || other.isSubmitting == _this.isSubmitting)&&const DeepCollectionEquality().equals(other.results, _this.results)&&(identical(other.resultsQuery, _this.resultsQuery) || other.resultsQuery == _this.resultsQuery)&&(identical(other.searchedFor, _this.searchedFor) || other.searchedFor == _this.searchedFor)&&const DeepCollectionEquality().equals(other.recentQueries, _this.recentQueries));
 }
 
 
 @override
 int get hashCode {
   final _this = this as EndpointSearchState;
-  return Object.hash(runtimeType,_this.query,_this.isSubmitting,const DeepCollectionEquality().hash(_this.results),const DeepCollectionEquality().hash(_this.recentQueries));
+  return Object.hash(runtimeType,_this.query,_this.isSubmitting,const DeepCollectionEquality().hash(_this.results),_this.resultsQuery,_this.searchedFor,const DeepCollectionEquality().hash(_this.recentQueries));
 }
 
 @override
 String toString() {
   final _this = this as EndpointSearchState;
-  return 'EndpointSearchState(query: ${_this.query}, isSubmitting: ${_this.isSubmitting}, results: ${_this.results}, recentQueries: ${_this.recentQueries})';
+  return 'EndpointSearchState(query: ${_this.query}, isSubmitting: ${_this.isSubmitting}, results: ${_this.results}, resultsQuery: ${_this.resultsQuery}, searchedFor: ${_this.searchedFor}, recentQueries: ${_this.recentQueries})';
 }
 
 
@@ -52,7 +55,7 @@ abstract mixin class $EndpointSearchStateCopyWith<$Res>  {
   factory $EndpointSearchStateCopyWith(EndpointSearchState value, $Res Function(EndpointSearchState) _then) = _$EndpointSearchStateCopyWithImpl;
 @useResult
 $Res call({
- String query, bool isSubmitting, List<Place>? results, List<String> recentQueries
+ String query, bool isSubmitting, List<Place>? results, String resultsQuery, String searchedFor, List<String> recentQueries
 });
 
 
@@ -69,12 +72,14 @@ class _$EndpointSearchStateCopyWithImpl<$Res>
 
 /// Create a copy of EndpointSearchState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? query = null,Object? isSubmitting = null,Object? results = freezed,Object? recentQueries = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? query = null,Object? isSubmitting = null,Object? results = freezed,Object? resultsQuery = null,Object? searchedFor = null,Object? recentQueries = null,}) {
   return _then(EndpointSearchState(
 query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,isSubmitting: null == isSubmitting ? _self.isSubmitting : isSubmitting // ignore: cast_nullable_to_non_nullable
 as bool,results: freezed == results ? _self.results : results // ignore: cast_nullable_to_non_nullable
-as List<Place>?,recentQueries: null == recentQueries ? _self.recentQueries : recentQueries // ignore: cast_nullable_to_non_nullable
+as List<Place>?,resultsQuery: null == resultsQuery ? _self.resultsQuery : resultsQuery // ignore: cast_nullable_to_non_nullable
+as String,searchedFor: null == searchedFor ? _self.searchedFor : searchedFor // ignore: cast_nullable_to_non_nullable
+as String,recentQueries: null == recentQueries ? _self.recentQueries : recentQueries // ignore: cast_nullable_to_non_nullable
 as List<String>,
   ));
 }
@@ -160,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String query,  bool isSubmitting,  List<Place>? results,  List<String> recentQueries)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String query,  bool isSubmitting,  List<Place>? results,  String resultsQuery,  String searchedFor,  List<String> recentQueries)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EndpointSearchState() when $default != null:
-return $default(_that.query,_that.isSubmitting,_that.results,_that.recentQueries);case _:
+return $default(_that.query,_that.isSubmitting,_that.results,_that.resultsQuery,_that.searchedFor,_that.recentQueries);case _:
   return orElse();
 
 }
@@ -181,10 +186,10 @@ return $default(_that.query,_that.isSubmitting,_that.results,_that.recentQueries
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String query,  bool isSubmitting,  List<Place>? results,  List<String> recentQueries)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String query,  bool isSubmitting,  List<Place>? results,  String resultsQuery,  String searchedFor,  List<String> recentQueries)  $default,) {final _that = this;
 switch (_that) {
 case _EndpointSearchState():
-return $default(_that.query,_that.isSubmitting,_that.results,_that.recentQueries);case _:
+return $default(_that.query,_that.isSubmitting,_that.results,_that.resultsQuery,_that.searchedFor,_that.recentQueries);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +206,10 @@ return $default(_that.query,_that.isSubmitting,_that.results,_that.recentQueries
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String query,  bool isSubmitting,  List<Place>? results,  List<String> recentQueries)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String query,  bool isSubmitting,  List<Place>? results,  String resultsQuery,  String searchedFor,  List<String> recentQueries)?  $default,) {final _that = this;
 switch (_that) {
 case _EndpointSearchState() when $default != null:
-return $default(_that.query,_that.isSubmitting,_that.results,_that.recentQueries);case _:
+return $default(_that.query,_that.isSubmitting,_that.results,_that.resultsQuery,_that.searchedFor,_that.recentQueries);case _:
   return null;
 
 }
@@ -216,14 +221,16 @@ return $default(_that.query,_that.isSubmitting,_that.results,_that.recentQueries
 
 
 class _EndpointSearchState implements EndpointSearchState {
-  const _EndpointSearchState({this.query = '', this.isSubmitting = false,  List<Place>? results,  List<String> recentQueries = const []}): _results = results,_recentQueries = recentQueries;
+  const _EndpointSearchState({this.query = '', this.isSubmitting = false,  List<Place>? results, this.resultsQuery = '', this.searchedFor = '',  List<String> recentQueries = const []}): _results = results,_recentQueries = recentQueries;
   
 
 @override@JsonKey() final  String query;
 @override@JsonKey() final  bool isSubmitting;
 /// null이면 아직 검색하지 않았다(최근 검색어를 보여준다).
+/// 입력 중 새 결과가 올 때까지는 이전 결과를 그대로 둔다(깜빡임 없음).
  final  List<Place>? _results;
 /// null이면 아직 검색하지 않았다(최근 검색어를 보여준다).
+/// 입력 중 새 결과가 올 때까지는 이전 결과를 그대로 둔다(깜빡임 없음).
 @override List<Place>? get results {
   final value = _results;
   if (value == null) return null;
@@ -232,6 +239,10 @@ class _EndpointSearchState implements EndpointSearchState {
   return EqualUnmodifiableListView(value);
 }
 
+/// [results]를 찾은 검색어(정리된 형태). 그 목록에서 장소를 고르면 이 검색어를 최근 검색어에 남긴다.
+@override@JsonKey() final  String resultsQuery;
+/// 마지막으로 찾기로 한 검색어(정리된 형태). 공백만 바뀌어 같으면 다시 찾지 않는다.
+@override@JsonKey() final  String searchedFor;
  final  List<String> _recentQueries;
 @override@JsonKey() List<String> get recentQueries {
   if (_recentQueries is EqualUnmodifiableListView) return _recentQueries;
@@ -250,18 +261,18 @@ _$EndpointSearchStateCopyWith<_EndpointSearchState> get copyWith => __$EndpointS
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _EndpointSearchState&&(identical(other.query, query) || other.query == query)&&(identical(other.isSubmitting, isSubmitting) || other.isSubmitting == isSubmitting)&&const DeepCollectionEquality().equals(other.results, _results)&&const DeepCollectionEquality().equals(other.recentQueries, _recentQueries));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _EndpointSearchState&&(identical(other.query, query) || other.query == query)&&(identical(other.isSubmitting, isSubmitting) || other.isSubmitting == isSubmitting)&&const DeepCollectionEquality().equals(other.results, _results)&&(identical(other.resultsQuery, resultsQuery) || other.resultsQuery == resultsQuery)&&(identical(other.searchedFor, searchedFor) || other.searchedFor == searchedFor)&&const DeepCollectionEquality().equals(other.recentQueries, _recentQueries));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,query,isSubmitting,const DeepCollectionEquality().hash(_results),const DeepCollectionEquality().hash(_recentQueries));
+    return Object.hash(runtimeType,query,isSubmitting,const DeepCollectionEquality().hash(_results),resultsQuery,searchedFor,const DeepCollectionEquality().hash(_recentQueries));
 }
 
 @override
 String toString() {
-    return 'EndpointSearchState(query: $query, isSubmitting: $isSubmitting, results: $results, recentQueries: $recentQueries)';
+    return 'EndpointSearchState(query: $query, isSubmitting: $isSubmitting, results: $results, resultsQuery: $resultsQuery, searchedFor: $searchedFor, recentQueries: $recentQueries)';
 }
 
 
@@ -272,7 +283,7 @@ abstract mixin class _$EndpointSearchStateCopyWith<$Res> implements $EndpointSea
   factory _$EndpointSearchStateCopyWith(_EndpointSearchState value, $Res Function(_EndpointSearchState) _then) = __$EndpointSearchStateCopyWithImpl;
 @override @useResult
 $Res call({
- String query, bool isSubmitting, List<Place>? results, List<String> recentQueries
+ String query, bool isSubmitting, List<Place>? results, String resultsQuery, String searchedFor, List<String> recentQueries
 });
 
 
@@ -289,12 +300,14 @@ class __$EndpointSearchStateCopyWithImpl<$Res>
 
 /// Create a copy of EndpointSearchState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? query = null,Object? isSubmitting = null,Object? results = freezed,Object? recentQueries = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? query = null,Object? isSubmitting = null,Object? results = freezed,Object? resultsQuery = null,Object? searchedFor = null,Object? recentQueries = null,}) {
   return _then(_EndpointSearchState(
 query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,isSubmitting: null == isSubmitting ? _self.isSubmitting : isSubmitting // ignore: cast_nullable_to_non_nullable
 as bool,results: freezed == results ? _self._results : results // ignore: cast_nullable_to_non_nullable
-as List<Place>?,recentQueries: null == recentQueries ? _self._recentQueries : recentQueries // ignore: cast_nullable_to_non_nullable
+as List<Place>?,resultsQuery: null == resultsQuery ? _self.resultsQuery : resultsQuery // ignore: cast_nullable_to_non_nullable
+as String,searchedFor: null == searchedFor ? _self.searchedFor : searchedFor // ignore: cast_nullable_to_non_nullable
+as String,recentQueries: null == recentQueries ? _self._recentQueries : recentQueries // ignore: cast_nullable_to_non_nullable
 as List<String>,
   ));
 }

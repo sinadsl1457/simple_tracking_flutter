@@ -89,7 +89,8 @@ class _EndpointPickerPageState extends ConsumerState<EndpointPickerPage> {
                 isSubmitting: state.isSubmitting,
                 hintText: '${widget.args.title} — 장소, 주소 검색',
                 onBack: context.pop,
-                onChanged: _search.onQueryChanged,
+                onChanged: (query) =>
+                    _search.onQueryChanged(query, center: _myLocation),
                 onSubmitted: () =>
                     unawaited(_search.submit(center: _myLocation)),
               ),
