@@ -37,8 +37,6 @@ import 'package:simple_tracking/features/place/domain/search_places_by_category_
     as _i876;
 import 'package:simple_tracking/features/place/domain/search_places_use_case.dart'
     as _i48;
-import 'package:simple_tracking/features/place/presentation/cubit/place_search_cubit.dart'
-    as _i535;
 import 'package:simple_tracking/features/push/data/push_module.dart' as _i54;
 import 'package:simple_tracking/features/push/domain/push_repository.dart'
     as _i596;
@@ -131,14 +129,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i621.FindCarRouteUseCase>(),
         gh<_i621.FindWalkingRouteUseCase>(),
         gh<_i621.FindTransitRoutesUseCase>(),
-      ),
-    );
-    gh.factory<_i535.PlaceSearchCubit>(
-      () => _i535.PlaceSearchCubit(
-        gh<_i48.SearchPlacesUseCase>(),
-        gh<_i876.SearchPlacesByCategoryUseCase>(),
-        gh<_i1047.RecentSearchesUseCase>(),
-        gh<_i940.RecentPlacesUseCase>(),
       ),
     );
     gh.factory<_i175.RoutePlannerCubit>(

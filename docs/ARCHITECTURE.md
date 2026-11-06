@@ -66,7 +66,7 @@ presentation ──→ domain ←── data
 ### 4-1. 카테고리 검색 (카페 칩)
 ```
 CategoryChips 탭
-→ PlaceSearchCubit.toggleCategory(cafe, around: 지도 중심)
+→ PlaceSearchNotifier.toggleCategory(cafe, around: 지도 중심)
 → SearchPlacesByCategoryUseCase → PlaceRepository(Impl) → KakaoPlaceApi(GET category.json)
 → state.phase = loaded(places)            → MapScreen이 하단 시트·지도 핀을 그림
 → effect fitCamera(points)               → MapScreen이 지도 카메라를 맞춤

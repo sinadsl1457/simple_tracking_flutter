@@ -1,4 +1,4 @@
-// [place/presentation] PlaceSearchCubit의 상태(State)와 일회성 effect 모델. 로직은 place_search_cubit.dart.
+// [place/presentation] PlaceSearchNotifier의 상태(State)와 일회성 effect 모델. 로직은 place_search_notifier.dart.
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:simple_tracking/core/error/failure.dart';

@@ -15,7 +15,7 @@ import 'package:simple_tracking/features/route/presentation/cubit/endpoint_searc
 // 화면·테스트는 cubit 파일 하나만 import해도 State·Effect를 쓸 수 있게 다시 내보낸다.
 export 'endpoint_search_state.dart';
 
-/// 길찾기 출발지·도착지를 고르는 검색. 지도 검색(PlaceSearchCubit)과 달리
+/// 길찾기 출발지·도착지를 고르는 검색. 지도 검색(PlaceSearchNotifier)과 달리
 /// 결과를 지도에 띄우지 않고 페이지 안 목록에서 바로 고른다.
 @injectable
 class EndpointSearchCubit extends Cubit<EndpointSearchState>

@@ -55,7 +55,7 @@
 | `unawaited(f)` | "일부러 기다리지 않음"을 표시. lint(`discarded_futures`)가 실수로 안 기다린 것과 구분 | 위젯 콜백에서 Cubit 호출 |
 | single-subscription `StreamController()` | 구독자 1명. **구독 전 이벤트를 버퍼에 보관** → Swift `AsyncStream`과 같은 성질 | `EffectEmitter` |
 | `Future.wait([...])` + `.then` | 여러 요청을 동시에 보내고, 각각 도착하는 대로 처리 | `RouteCubit._search` |
-| 세대 번호(`_generation`) | 늦게 도착한 **이전** 요청 결과를 버리는 방법 | `PlaceSearchCubit`, `RouteCubit` |
+| 세대 번호(`_generation`) | 늦게 도착한 **이전** 요청 결과를 버리는 방법 | `PlaceSearchNotifier`, `RouteCubit` |
 
 ## 5. Flutter 위젯·API
 

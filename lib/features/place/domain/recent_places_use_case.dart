@@ -1,5 +1,5 @@
 // [place/domain] 최근 장소 규칙(최신순, 같은 장소 1번, 20개).
-// 기록하는 곳: PlaceSearchCubit.select, EndpointSearchCubit.remember,
+// 기록하는 곳: PlaceSearchNotifier.select, EndpointSearchCubit.remember,
 //             RoutePlannerCubit.chooseRecent
 
 import 'package:injectable/injectable.dart';

@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:simple_tracking/core/geo/geo_point.dart';
 import 'package:simple_tracking/core/presentation/formatters.dart';
 import 'package:simple_tracking/features/place/domain/place.dart';
-import 'package:simple_tracking/features/place/presentation/cubit/place_search_cubit.dart';
+import 'package:simple_tracking/features/place/presentation/place_search_notifier.dart';
 import 'package:simple_tracking/features/place/presentation/widgets/place_category_display.dart';
 import 'package:url_launcher/url_launcher.dart';
 

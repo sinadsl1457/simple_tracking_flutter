@@ -1,4 +1,4 @@
-// [map/presentation] 지도 화면 = 앱의 메인 화면. 내 위치(MapNotifier, Riverpod)와 검색·길찾기(Cubit)를 지도와 UI에 연결한다.
+// [map/presentation] 지도 화면 = 앱의 메인 화면. 내 위치·검색(Riverpod Notifier)과 길찾기(Cubit)를 지도와 UI에 연결한다.
 // 지도 반영 통로: 상태 변화는 ref.listen·BlocListener, 일회성 이벤트는 EffectListener(docs/ARCHITECTURE.md 4-3).
 // 파일 순서: 지도 명령 → 사용자 동작 → effect 처리 → 화면 구성
 
@@ -20,7 +20,7 @@ import 'package:simple_tracking/features/map/presentation/map_notifier.dart';
 import 'package:simple_tracking/features/map/presentation/map_overlay_mapper.dart';
 import 'package:simple_tracking/features/map/presentation/widgets/my_location_button.dart';
 import 'package:simple_tracking/features/place/domain/place.dart';
-import 'package:simple_tracking/features/place/presentation/cubit/place_search_cubit.dart';
+import 'package:simple_tracking/features/place/presentation/place_search_notifier.dart';
 import 'package:simple_tracking/features/place/presentation/widgets/category_chips.dart';
 import 'package:simple_tracking/features/place/presentation/widgets/map_search_bar.dart';
 import 'package:simple_tracking/features/place/presentation/widgets/place_results_sheet.dart';
@@ -79,7 +79,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   /// 이벤트 처리 중에 읽는 현재 값(다시 그리기와 무관). 화면을 그릴 때는 build에서 ref.watch.
   MapState get _mapState => ref.read(mapProvider);
-  PlaceSearchCubit get _search => context.read<PlaceSearchCubit>();
+  PlaceSearchNotifier get _search => ref.read(placeSearchProvider.notifier);
+  PlaceSearchState get _searchState => ref.read(placeSearchProvider);
   RouteCubit get _route => context.read<RouteCubit>();
 
   @override
@@ -150,7 +151,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _syncPlaceMarkers() {
     final map = _map;
     if (map == null) return;
-    final search = _search.state;
+    final search = _searchState;
     unawaited(
       _route.state.isActive
           ? map.showPlaceMarkers(const [])
@@ -234,7 +235,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     _cameraBeforeRoute = null;
     if (before != null) {
       _camera((m) => m.moveCamera(before.center, zoom: before.zoom));
-    } else if (_search.state.selectedPlace case final place?) {
+    } else if (_searchState.selectedPlace case final place?) {
       _moveCamera(place.location, zoom: 17);
     }
   }
@@ -276,7 +277,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     ShowSettingsPromptEffect() => unawaited(_showSettingsPrompt()),
   };
 
-  /// PlaceSearchCubit effect → 결과에 카메라 맞추기, 선택 장소로 이동, 오류 토스트.
+  /// PlaceSearchNotifier effect → 결과에 카메라 맞추기, 선택 장소로 이동, 오류 토스트.
   void _onSearchEffect(BuildContext context, PlaceSearchEffect effect) =>
       switch (effect) {
         FitPlacesEffect(:final points) => _cameraAwayFromMe(
@@ -329,30 +330,29 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       ..listen(
         mapProvider.select((s) => s.followMode),
         (_, mode) => unawaited(_map?.setFollowMode(mode.toMapFollowMode())),
-      );
+      )
+      // 검색 결과·선택이 바뀌면 번호 핀을 다시 그린다.
+      ..listen(
+        placeSearchProvider.select((s) => (s.places, s.selectedPlace)),
+        (_, _) => _syncPlaceMarkers(),
+      )
+      // 장소를 고르면 시트를 접고(지도가 보이게), 목록으로 돌아오면 중간 높이.
+      ..listen(
+        placeSearchProvider.select((s) => s.selectedPlace),
+        (_, selected) => setState(
+          () => _placeSheetDetent = selected == null
+              ? SheetDetent.medium
+              : SheetDetent.collapsed,
+        ),
+      )
+      // 새 검색 결과가 오면 시트를 중간 높이로.
+      ..listen(placeSearchProvider.select((s) => s.source), (_, source) {
+        if (source != null) {
+          setState(() => _placeSheetDetent = SheetDetent.medium);
+        }
+      });
     return MultiBlocListener(
       listeners: [
-        // 검색 결과·선택이 바뀌면 번호 핀을 다시 그린다.
-        BlocListener<PlaceSearchCubit, PlaceSearchState>(
-          listenWhen: (a, b) =>
-              a.places != b.places || a.selectedPlace != b.selectedPlace,
-          listener: (_, s) => _syncPlaceMarkers(),
-        ),
-        // 장소를 고르면 시트를 접고(지도가 보이게), 목록으로 돌아오면 중간 높이.
-        BlocListener<PlaceSearchCubit, PlaceSearchState>(
-          listenWhen: (a, b) => a.selectedPlace != b.selectedPlace,
-          listener: (_, s) => setState(
-            () => _placeSheetDetent = s.selectedPlace == null
-                ? SheetDetent.medium
-                : SheetDetent.collapsed,
-          ),
-        ),
-        // 새 검색 결과가 오면 시트를 중간 높이로.
-        BlocListener<PlaceSearchCubit, PlaceSearchState>(
-          listenWhen: (a, b) => a.source != b.source && b.source != null,
-          listener: (_, _) =>
-              setState(() => _placeSheetDetent = SheetDetent.medium),
-        ),
         // 길찾기 중에는 검색 핀을 숨긴다(출발·도착 말풍선만 보이게).
         BlocListener<RouteCubit, RouteState>(
           listenWhen: (a, b) => a.isActive != b.isActive,
@@ -389,7 +389,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// → 하단(장소 시트 / 대중교통 시트 / 경로 요약 카드) → 내 위치 버튼 → 토스트 → 검색 페이지.
   Widget _buildBody(BuildContext context) {
     final mapState = ref.watch(mapProvider);
-    final search = context.watch<PlaceSearchCubit>().state;
+    final search = ref.watch(placeSearchProvider);
     final route = context.watch<RouteCubit>().state;
 
     final padding = MediaQuery.paddingOf(context);

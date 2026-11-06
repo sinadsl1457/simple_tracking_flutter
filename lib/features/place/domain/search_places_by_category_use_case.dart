@@ -1,4 +1,4 @@
-// [place/domain] 카테고리 검색: 중심에서 반경 1km. 사용처: PlaceSearchCubit
+// [place/domain] 카테고리 검색: 중심에서 반경 1km. 사용처: PlaceSearchNotifier
 
 import 'package:injectable/injectable.dart';
 import 'package:simple_tracking/core/error/result.dart';
