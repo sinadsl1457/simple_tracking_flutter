@@ -41,13 +41,11 @@ class RoutePlannerPage extends ConsumerStatefulWidget {
 }
 
 class _RoutePlannerPageState extends ConsumerState<RoutePlannerPage> {
-  RoutePlannerNotifier get _planner => ref.read(routePlannerProvider.notifier);
-
-  @override
-  void initState() {
-    super.initState();
-    unawaited(_planner.onAppear(mode: widget.args.mode));
-  }
+  /// 지난 이동 수단을 인자로 넘겨 처음 상태를 정한다.
+  /// (initState에서 상태를 바꾸면 Riverpod이 오류를 낸다.)
+  RoutePlannerNotifierProvider get _provider =>
+      routePlannerProvider(widget.args.mode);
+  RoutePlannerNotifier get _planner => ref.read(_provider.notifier);
 
   Future<RouteEndpoint?> _pick(String title) => context.push<RouteEndpoint>(
     EndpointPickerPage.path,
@@ -66,7 +64,7 @@ class _RoutePlannerPageState extends ConsumerState<RoutePlannerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(routePlannerProvider);
+    final state = ref.watch(_provider);
     return EffectListener<RoutePlannerEffect>(
       effects: _planner.effects,
       onEffect: (context, effect) => switch (effect) {

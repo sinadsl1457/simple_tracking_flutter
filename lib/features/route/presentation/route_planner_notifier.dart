@@ -30,17 +30,19 @@ class RoutePlannerNotifier extends _$RoutePlannerNotifier {
   /// 화면이 구독하는 일회성 이벤트.
   Stream<RoutePlannerEffect> get effects => _effects.stream;
 
+  /// [initialMode]는 지난 길찾기에서 고른 이동 수단(준비 화면이 provider 인자로 넘긴다).
+  /// 처음 값은 여기서 정한다. 화면 initState에서 상태를 바꾸면 Riverpod이 오류를 낸다.
   @override
-  RoutePlannerState build() {
+  RoutePlannerState build(TravelMode initialMode) {
     _recentPlaces = ref.watch(recentPlacesUseCaseProvider);
     _effects = EffectChannel();
     ref.onDispose(_effects.close);
-    return const RoutePlannerState();
+    unawaited(_loadRecents());
+    return RoutePlannerState(mode: initialMode);
   }
 
-  /// 호출: 준비 화면 initState. [mode]는 지난 길찾기에서 고른 이동 수단.
-  Future<void> onAppear({required TravelMode mode}) async {
-    state = state.copyWith(mode: mode);
+  /// 최근 장소는 build가 끝난 뒤(await 뒤) 채운다.
+  Future<void> _loadRecents() async {
     final recents = await _recentPlaces.list();
     if (ref.mounted) state = state.copyWith(recentPlaces: recents);
   }

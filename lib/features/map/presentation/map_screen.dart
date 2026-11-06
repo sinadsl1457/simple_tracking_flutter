@@ -104,9 +104,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
   }
 
+  /// initState·didUpdateWidget에서 불린다. 그 안에서 검색 상태를 바꾸면 Riverpod이 오류를 내므로
+  /// 이번 프레임을 다 그린 뒤에 찾는다.
   void _searchFromLink(String? query) {
     if (query == null) return;
-    unawaited(_search.searchFor(query, center: _mapState.myLocation?.point));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_search.searchFor(query, center: _mapState.myLocation?.point));
+    });
   }
 
   @override

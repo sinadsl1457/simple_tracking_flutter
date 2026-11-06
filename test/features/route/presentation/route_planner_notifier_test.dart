@@ -18,8 +18,11 @@ void main() {
   late FakeRecentPlaceRepository recents;
 
   late ProviderContainer container;
+  late RoutePlannerNotifierProvider provider;
 
-  RoutePlannerNotifier makeNotifier() {
+  /// [mode]는 지난 길찾기에서 고른 이동 수단(준비 화면이 provider 인자로 넘기는 값).
+  RoutePlannerNotifier makeNotifier({TravelMode mode = TravelMode.transit}) {
+    provider = routePlannerProvider(mode);
     recents = FakeRecentPlaceRepository([
       RecentPlace(place: cafe, usedAt: DateTime(2026, 10, 18)),
       RecentPlace(place: station, usedAt: DateTime(2026, 10, 17)),
@@ -30,19 +33,18 @@ void main() {
           RecentPlacesUseCase(recents),
         ),
       ],
-    )..listen(routePlannerProvider, (_, _) {});
-    final notifier = container.read(routePlannerProvider.notifier);
+    )..listen(provider, (_, _) {});
+    final notifier = container.read(provider.notifier);
     effects = [];
     notifier.effects.listen(effects.add);
     return notifier;
   }
 
-  RoutePlannerState state() => container.read(routePlannerProvider);
+  RoutePlannerState state() => container.read(provider);
 
   test('출발지는 내 위치, 도착지는 비어 있고 최근 장소를 불러온다', () async {
-    final notifier = makeNotifier();
-
-    await notifier.onAppear(mode: TravelMode.car);
+    makeNotifier(mode: TravelMode.car);
+    await flush();
 
     expect(state().origin, const RouteEndpoint.myLocation());
     expect(state().destination, isNull);
@@ -51,8 +53,8 @@ void main() {
   });
 
   test('최근 장소를 누르면 도착지가 되고 바로 길찾기로 넘어간다', () async {
-    final notifier = makeNotifier();
-    await notifier.onAppear(mode: TravelMode.walk);
+    final notifier = makeNotifier(mode: TravelMode.walk);
+    await flush();
 
     notifier.chooseRecent(state().recentPlaces[1]);
     await flush();
@@ -92,7 +94,7 @@ void main() {
 
   test('최근 장소 삭제', () async {
     final notifier = makeNotifier();
-    await notifier.onAppear(mode: TravelMode.transit);
+    await flush();
 
     await notifier.removeRecent('cafe');
 
