@@ -1,4 +1,4 @@
-// [push/presentation] PushCubit의 상태와 일회성 effect 모델. 로직은 push_cubit.dart.
+// [push/presentation] PushNotifier의 상태와 일회성 effect 모델. 로직은 push_notifier.dart.
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:simple_tracking/features/push/domain/push_message.dart';
