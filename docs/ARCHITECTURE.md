@@ -10,20 +10,20 @@
 
 ```
 lib/
-├ main.dart / app.dart          시작점, MaterialApp, 앱 전체 Cubit(PushCubit)
+├ main.dart / app.dart          시작점(SharedPreferences를 열어 provider 자리에 넣음), MaterialApp
 ├ app_router.dart               라우트 표(go_router). 화면 상태(Notifier)는 화면이 읽을 때 생긴다
 ├ core/                         기능과 무관한 공통 코드
 │  ├ config/   app_config       --dart-define 값(카카오 키, 고정 위치, 푸시 켜기)
-│  ├ di/       injection        get_it + injectable 설정 (Dio, SharedPreferences 등록)
 │  ├ error/    failure, result  모든 실패 종류(sealed)와 Ok/Err 결과 타입
 │  ├ geo/      geo_point, math  좌표와 거리 계산
-│  ├ network/  safe_api_call    HTTP 오류 → Failure 변환, 카카오 인증 헤더
-│  └ presentation/              EffectChannel·EffectEmitter(일회성 이벤트), 하단 시트, 토스트, 포맷터
+│  ├ network/  safe_api_call    HTTP 오류 → Failure 변환, 카카오 인증 헤더, dioProvider(Dio 하나)
+│  ├ storage/  shared_preferences_provider  SharedPreferences 자리(main이 채움)
+│  └ presentation/              EffectChannel(일회성 이벤트), 하단 시트, 토스트, 포맷터
 └ features/                     기능별. 각 기능 안에 domain / data / presentation
    ├ location/   내 위치 (GPS: geolocator)
    ├ place/      장소 검색(입력 중 실시간 미리보기), 최근 검색어, 최근 장소
    ├ route/      길찾기 (자동차·도보·대중교통), 길찾기 준비 화면, 출발지·도착지 선택
-   ├ push/       푸시 알림(FCM). 앱 전체에 하나뿐인 PushCubit — 화면 없이 app.dart에 붙는다
+   ├ push/       푸시 알림(FCM). 앱 전체에 하나뿐인 PushNotifier — 화면 없이 app.dart에 붙는다
    └ map/        지도 화면(MapScreen) — 위 세 기능을 조립하는 곳
 
 packages/kakao_map_view/        카카오맵 SDK를 Flutter 위젯으로 쓰게 하는 로컬 플러그인
@@ -43,8 +43,9 @@ presentation ──→ domain ←── data
 - **domain**은 아무것도 모른다. Flutter·dio·JSON import 없음. 여기만 읽어도 앱이 무엇을 하는지 알 수 있다.
 - **data**는 domain의 `XxxRepository` 인터페이스를 구현한다. DTO → 도메인 변환(mapper)도 여기.
 - **presentation**은 domain 모델만 쓴다. DTO를 모른다.
-- 연결은 `injectable`이 한다: `@LazySingleton(as: PlaceRepository)`가 붙은 구현체가 인터페이스 자리에 들어간다
-  (`core/di/injection.config.dart`는 생성 파일).
+- 연결은 기능마다 `data/xxx_providers.dart`가 한다: API → 저장소 → UseCase를 provider 사슬로 잇는다.
+  저장소 provider의 반환 타입이 domain 인터페이스(`PlaceRepository`)라서 테스트는 그 provider만 가짜로 바꿔 끼운다.
+  API·저장소는 `keepAlive`(앱에 하나), UseCase는 autoDispose(보는 Notifier가 있는 동안).
 
 ## 3. 리뷰 추천 순서
 
@@ -93,7 +94,7 @@ Notifier는 지도를 모른다. MapScreen이 두 통로로 지도에 전달한�
 - 지도가 준비되기 전 카메라 명령은 `_pendingCamera`에 보관했다가 `onMapCreated`에서 실행.
 
 #### 왜 effect 스트림인가 (공식 가이드가 아님)
-`EffectEmitter`/`EffectListener`는 직접 만든 작은 코드다. 출처: 네이티브 SimpleTrackingiOS의
+`EffectChannel`/`EffectListener`는 직접 만든 작은 코드다(Cubit 시절엔 `EffectEmitter` mixin). 출처: 네이티브 SimpleTrackingiOS의
 `MapViewModel.effects`(AsyncStream) 구조, 같은 아이디어의 커뮤니티 패키지 `bloc_presentation`.
 - bloc 공식 문서·Android 공식 가이드는 오히려 **state에 넣고 처리 후 consume**하는 쪽을 권장한다(fence 방식).
 - 여기서 effect를 쓴 이유: 카메라 이동·토스트·권한 팝업처럼 **놓쳐도 다시 할 필요 없는 일**이라서.
@@ -109,39 +110,40 @@ Notifier는 지도를 모른다. MapScreen이 두 통로로 지도에 전달한�
 | `domain/push_message.dart` | domain | 앱이 이해하는 메시지와 "갈 곳"(sealed `PushDestination`) | Firebase, 화면 경로 |
 | `domain/push_repository.dart` | domain | 바깥(FCM)의 입구 계약: 권한, 토큰, 수신 스트림 3개 | 탭하면 어디로 갈지 |
 | `data/push_message_mapper.dart` | data | 서버 페이로드 `{"type","query"}` → `PushDestination`. **페이로드 형식을 아는 유일한 곳** | |
-| `data/fcm_push_repository.dart` | data | firebase_messaging을 감싸고 도메인 모델로 바꿔 내보냄 | 화면, Cubit |
+| `data/fcm_push_repository.dart` | data | firebase_messaging을 감싸고 도메인 모델로 바꿔 내보냄 | 화면, Notifier |
 | `data/disabled_push_repository.dart` | data | Firebase 설정 전에 쓰는 빈 구현 | |
-| `data/push_module.dart` | data | `PUSH_ENABLED`로 둘 중 하나를 싱글턴 등록 (위치의 `location_providers.dart`와 같은 역할) | |
-| `data/fcm_setup.dart` | data | DI 전에 `Firebase.initializeApp()` + 백그라운드 핸들러 | |
-| `presentation/cubit/push_cubit.dart` | presentation | 수신 경로 3가지를 effect 2개(`open`, `showInApp`)로 모음 | BuildContext, router |
-| `presentation/push_effect_listener.dart` | presentation | effect → 스낵바 / `onOpen` 호출 | 어느 경로로 갈지 |
+| `data/push_providers.dart` | data | `PUSH_ENABLED`로 둘 중 하나를 고르는 keepAlive provider (위치의 `location_providers.dart`와 같은 역할) | |
+| `data/fcm_setup.dart` | data | runApp 전에 `Firebase.initializeApp()` + 백그라운드 핸들러 | |
+| `presentation/push_notifier.dart` | presentation | 수신 경로 3가지를 effect 2개(`open`, `showInApp`)로 모음. keepAlive | BuildContext, router |
+| `presentation/push_effect_listener.dart` | presentation | effect → 스낵바 / `onOpen` 호출. `pushProvider.notifier`를 watch해 앱 시작과 함께 깨운다 | 어느 경로로 갈지 |
 | `app_router.dart` `pushDestinationLocation` | 앱 셸 | `PushDestination` → URL(`/?q=카페`). `app.dart`가 `appRouter.go`로 이동 | |
 
 ```
-FCM ─→ FcmPushRepository ─(PushMessage)─→ PushCubit ─(PushEffect)─→ PushEffectListener
-        RemoteMessage를                     어떤 일인지 고름            ├ showInApp → 스낵바("보기" → cubit.openInApp)
+FCM ─→ FcmPushRepository ─(PushMessage)─→ PushNotifier ─(PushEffect)─→ PushEffectListener
+        RemoteMessage를                     어떤 일인지 고름            ├ showInApp → 스낵바("보기" → notifier.openInApp)
         도메인으로 바꿈                                                 └ open → app_router.dart가 경로로 바꿈 → appRouter.go
                                                                            → MapScreen(searchQuery) → 검색
 ```
 
-**수신 경로 3가지** — 이게 푸시 코드가 복잡해지는 원인이라 Cubit 한 곳에서 모은다.
+**수신 경로 3가지** — 이게 푸시 코드가 복잡해지는 원인이라 Notifier 한 곳에서 모은다.
 
-| 앱 상태 | 알림을 누가 띄우나 | 들어오는 곳 | Cubit이 내는 effect |
+| 앱 상태 | 알림을 누가 띄우나 | 들어오는 곳 | Notifier가 내는 effect |
 |---|---|---|---|
 | 앞에 떠 있음 | 아무도 (OS가 안 띄움) | `foregroundMessages()` | `showInApp` |
 | 백그라운드 → 탭 | OS | `openedMessages()` | `open` |
 | 꺼져 있음 → 탭해서 실행 | OS | `initialMessage()` (스트림이 아니라 한 번 꺼냄) | `open` |
 
 **왜 이렇게 나눴나**
-- **싱글턴은 repository, Cubit은 하나만 만듦**: `PushRepository`는 `@lazySingleton`. `PushCubit`은 `@injectable`(팩토리)이지만
-  `app.dart`의 `MaterialApp` 위에서 한 번만 만들어서 앱 수명 동안 하나다. 아무 데서나 `getIt<...>()`로 꺼내지 않는다.
-- **인터페이스가 실제로 일하는 곳**: 구현이 둘(`Fcm`/`Disabled`)이라 Cubit·app.dart에 `if (pushEnabled)`가 없다.
+- **둘 다 앱에 하나(keepAlive)**: `pushRepositoryProvider`와 `PushNotifier` 모두 keepAlive.
+  Riverpod은 처음 읽힐 때 만들기 때문에, `MaterialApp` 위의 `PushEffectListener`가 `ref.watch(pushProvider.notifier)` 해서
+  **앱 시작과 함께** 만들고 `build()`에서 바로 수신을 시작한다(get_it의 `@singleton`처럼). Cubit 시절의 `start()` 호출이 build로 들어갔다.
+- **인터페이스가 실제로 일하는 곳**: 구현이 둘(`Fcm`/`Disabled`)이라 Notifier·app.dart에 `if (pushEnabled)`가 없다.
   테스트는 `FakePushRepository`로 Firebase 없이 돈다.
-- **경로는 app_router.dart만 안다**: domain은 "검색하러 가라"까지만 말한다. 라우트 구조가 바뀌어도 domain·data·Cubit은 그대로.
+- **경로는 app_router.dart만 안다**: domain은 "검색하러 가라"까지만 말한다. 라우트 구조가 바뀌어도 domain·data·Notifier는 그대로.
   나중에 딥링크(웹 링크로 앱 열기)도 같은 `/?q=` 경로로 들어오게 할 수 있다.
-- **백그라운드 핸들러는 DI 밖**: 별도 isolate라 get_it·Cubit이 비어 있다. `fcm_setup.dart`의 top-level 함수가 최소한만 한다.
+- **백그라운드 핸들러는 provider 밖**: 별도 isolate라 provider 창고가 없다. `fcm_setup.dart`의 top-level 함수가 최소한만 한다.
 - **토큰 → 서버**: 지금은 서버가 없어서 `PushState.token`에만 둔다. 서버가 생기면
-  `DeviceApi`(Retrofit) + `DeviceRepository`를 만들고, `PushCubit._onToken`에서 "토큰 등록" UseCase(두 repo 조합)를 부른다.
+  `DeviceApi`(Retrofit) + `DeviceRepository`를 만들고, `PushNotifier._onToken`에서 "토큰 등록" UseCase(두 repo 조합)를 부른다.
 - **FCM 17 토큰 API**: `getToken()`이 deprecated, `register()` → `onRegistered`로 바뀌었다. 이 두 단계를 `tokens()` 스트림 하나로 감췄다.
 
 ## 5. 지도 플러그인 (packages/kakao_map_view)
@@ -223,7 +225,7 @@ Native KakaoMapViewPlugin (등록) → KakaoMapViewFactory.create
 
 ```bash
 flutter run --dart-define-from-file=env/dev.json     # 키가 없으면 "API 키가 필요해요" 화면
-dart run build_runner build -d                       # freezed / json / retrofit / injectable 생성
+dart run build_runner build -d                       # freezed / json / retrofit / riverpod 생성
 flutter test
 ```
 VS Code는 `.vscode/launch.json`(F5)에 위 옵션과 기기가 들어 있다. 터미널은 아래 셋.

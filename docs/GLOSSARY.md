@@ -4,17 +4,17 @@
 
 ---
 
-## 1. DI (get_it + injectable)
+## 1. DI (Riverpod provider)
 
 | 키워드 | 뜻 | 어디서 쓰나 |
 |---|---|---|
-| `@InjectableInit()` | 이 함수에 대한 등록 코드(`injection.config.dart`)를 생성하라는 표시 | `core/di/injection.dart` |
-| `@injectable` | 요청할 때마다 **새로 만드는** 등록(factory). Cubit, UseCase | `find_route_use_cases.dart` |
-| `@lazySingleton` | **처음 요청할 때 한 번** 만들고 계속 재사용 | `kakao_place_api.dart` |
-| `@LazySingleton(as: X)` | 이 구현 클래스를 **인터페이스 X 자리에** 등록. 다른 곳은 X만 알면 된다 | `place_repository_impl.dart` (`as: PlaceRepository`) |
-| `@module` | "이 타입을 어떻게 만들지" 생성 로직을 직접 쓰는 곳. ① 남의 클래스라 어노테이션을 못 붙일 때(Dio, SharedPreferences) ② 생성자 인자가 설정·계산값일 때 ③ 조건에 따라 구현을 골라야 할 때 | `register_module.dart`(①), `location_module.dart`(②③) |
-| `@preResolve` | 등록할 값이 Future일 때 **DI 초기화 중에 미리 await**해 완성된 객체를 등록. 그래서 `configureDependencies()`가 Future이고 main에서 await한다. (fence `AppStorage`의 늦은 초기화 race를 구조적으로 막는다) | `register_module.dart` `prefs()` |
-| `@factoryMethod` | 클래스에 생성자가 여러 개일 때 DI가 쓸 것을 지정. Retrofit의 `factory X(Dio) = _X;`에 붙인다 | `kakao_place_api.dart` |
+| `@riverpod` 함수 | "이 타입을 어떻게 만들지" 레시피. 이름 `foo` → `fooProvider`가 생성된다. 기본은 autoDispose(보는 쪽이 없으면 정리) | `place_providers.dart` UseCase들 |
+| `@Riverpod(keepAlive: true)` | 처음 읽힐 때 한 번 만들고 앱 내내 둔다(get_it `@lazySingleton` 자리) | `dio_provider.dart`, 저장소들 |
+| 반환 타입을 인터페이스로 | `PlaceRepository placeRepository(Ref ref) => PlaceRepositoryImpl(...)`. 다른 곳은 인터페이스만 안다(get_it `@LazySingleton(as: X)` 자리) | `place_providers.dart` |
+| `ref.watch(xProvider)` (레시피 안) | 재료 받기 = 생성자 주입. 재료가 바뀌면 이 레시피도 다시 만든다 | `PlaceRepositoryImpl(ref.watch(kakaoPlaceApiProvider))` |
+| 빈 자리 레시피 + `overrideWithValue` | await가 필요한 객체는 main에서 열고 `ProviderScope(overrides:)`로 채운다(get_it `@preResolve` 자리) | `shared_preferences_provider.dart`, `main.dart` |
+| `ref.onDispose` | 정리될 때 할 일(구독 끊기, 연결 닫기). Cubit `close()` 자리 | `dio_provider.dart`, `push_notifier.dart` |
+| `ProviderContainer.test(overrides:)` | 테스트마다 새 창고. 가짜를 끼워도 다른 테스트에 남지 않는다(`getIt.reset()` 불필요) | `test/features/**` |
 
 ## 2. 코드 생성 (freezed / json_serializable / retrofit)
 
@@ -37,14 +37,13 @@
 | `abstract interface class` | "구현만 하라(implements), 상속하지 마라" — 순수 인터페이스 | `PlaceRepository` |
 | `abstract final class` | 인스턴스를 못 만들고 상속도 못 함 → **static 상수·함수 묶음** 용도 | `AppConfig`, `GeoMath` |
 | switch 식 `=> switch (x) { A() => …, B() => … }` | 값을 돌려주는 switch. `case`·`break` 없음 | `FailureMessage.userMessage` |
-| 패턴 `case Ok(:final value)` | 타입 검사 + 필드 꺼내기를 한 번에. `:final value`는 `value: final value`의 줄임 | Cubit의 결과 처리 |
+| 패턴 `case Ok(:final value)` | 타입 검사 + 필드 꺼내기를 한 번에. `:final value`는 `value: final value`의 줄임 | Notifier의 결과 처리 |
 | `if (x case final y?)` | x가 null이 아니면 y로 받아서 실행 (if-let) | `map_screen.dart` `_pendingCamera` |
 | `when` 가드 | 패턴에 조건 추가: `Ok(value: []) =>`, `ModeTransit(:final routes) when i < routes.length` | `find_route_use_cases.dart` |
 | 레코드 `(origin: a, destination: b)` | 이름 붙은 필드의 가벼운 튜플. 클래스 안 만들고 값 묶기 | 테스트 fake의 `lastCarRequest` |
 | `for (final (i, x) in list.indexed)` | 인덱스와 값을 같이 순회 (구조 분해) | `placeMarkers()` |
 | null-aware 요소 `[?a, b]` | a가 null이면 리스트에서 빼기 (Dart 3.8) | `place_results_sheet.dart` |
 | `.nonNulls`, `.firstOrNull` | null 걸러내기, 비었으면 null | `place_repository_impl.dart` |
-| `mixin X on Cubit<S>` | Cubit에만 붙일 수 있는 기능 묶음. `with`로 붙인다 | `EffectEmitter` |
 | `Result<Never>` | "값은 절대 없음" 타입. 실패만 담을 때 어떤 `Result<T>`에도 대입 가능 | 테스트 |
 
 ## 4. 비동기
@@ -52,8 +51,8 @@
 | 키워드 | 뜻 | 주의 |
 |---|---|---|
 | `async*` / `yield` / `yield*` | Stream을 함수처럼 작성. `yield*`는 다른 스트림을 이어 붙임 | **끝나지 않는 await를 넣으면 `cancel()`도 끝나지 않는다** → 열린 스트림은 `StreamController`로 만든다 |
-| `unawaited(f)` | "일부러 기다리지 않음"을 표시. lint(`discarded_futures`)가 실수로 안 기다린 것과 구분 | 위젯 콜백에서 Cubit 호출 |
-| single-subscription `StreamController()` | 구독자 1명. **구독 전 이벤트를 버퍼에 보관** → Swift `AsyncStream`과 같은 성질 | `EffectEmitter` |
+| `unawaited(f)` | "일부러 기다리지 않음"을 표시. lint(`discarded_futures`)가 실수로 안 기다린 것과 구분 | 위젯 콜백에서 Notifier 호출, `PushNotifier.build` |
+| single-subscription `StreamController()` | 구독자 1명. **구독 전 이벤트를 버퍼에 보관** → Swift `AsyncStream`과 같은 성질 | `EffectChannel` |
 | `Future.wait([...])` + `.then` | 여러 요청을 동시에 보내고, 각각 도착하는 대로 처리 | `RouteNotifier._search` |
 | 세대 번호(`_generation`) | 늦게 도착한 **이전** 요청 결과를 버리는 방법 | `PlaceSearchNotifier`, `RouteNotifier` |
 
