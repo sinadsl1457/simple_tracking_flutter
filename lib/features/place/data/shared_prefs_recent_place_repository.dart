@@ -2,7 +2,6 @@
 
 import 'dart:convert';
 
-import 'package:injectable/injectable.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simple_tracking/features/place/data/dto/recent_place_dto.dart';
@@ -10,7 +9,6 @@ import 'package:simple_tracking/features/place/domain/recent_place.dart';
 import 'package:simple_tracking/features/place/domain/recent_place_repository.dart';
 
 /// 최근 장소를 기기 안(SharedPreferences)에 JSON 문자열 목록으로 저장한다.
-@LazySingleton(as: RecentPlaceRepository)
 class SharedPrefsRecentPlaceRepository implements RecentPlaceRepository {
   const SharedPrefsRecentPlaceRepository(this._prefs);
 

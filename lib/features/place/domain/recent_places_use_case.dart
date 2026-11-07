@@ -2,14 +2,12 @@
 // 기록하는 곳: PlaceSearchNotifier.select, EndpointSearchNotifier.remember,
 //             RoutePlannerNotifier.chooseRecent
 
-import 'package:injectable/injectable.dart';
 import 'package:simple_tracking/features/place/domain/place.dart';
 import 'package:simple_tracking/features/place/domain/recent_place.dart';
 import 'package:simple_tracking/features/place/domain/recent_place_repository.dart';
 
 /// 최근에 고른 장소. 가장 최근 것이 앞에 오고, 같은 장소(id)는 한 번만,
 /// 최대 [maxCount]개까지 둔다.
-@injectable
 class RecentPlacesUseCase {
   const RecentPlacesUseCase(this._repository);
 

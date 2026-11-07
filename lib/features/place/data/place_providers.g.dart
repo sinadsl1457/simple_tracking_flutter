@@ -9,6 +9,185 @@ part of 'place_providers.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
+@ProviderFor(kakaoPlaceApi)
+final kakaoPlaceApiProvider = KakaoPlaceApiProvider._();
+
+final class KakaoPlaceApiProvider
+    extends $FunctionalProvider<KakaoPlaceApi, KakaoPlaceApi, KakaoPlaceApi>
+    with $Provider<KakaoPlaceApi> {
+  KakaoPlaceApiProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'kakaoPlaceApiProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$kakaoPlaceApiHash();
+
+  @$internal
+  @override
+  $ProviderElement<KakaoPlaceApi> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  KakaoPlaceApi create(Ref ref) {
+    return kakaoPlaceApi(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(KakaoPlaceApi value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<KakaoPlaceApi>(value),
+    );
+  }
+}
+
+String _$kakaoPlaceApiHash() => r'0cd7648bb4869a836a0570f2b32ea4e94476d5cd';
+
+@ProviderFor(placeRepository)
+final placeRepositoryProvider = PlaceRepositoryProvider._();
+
+final class PlaceRepositoryProvider
+    extends
+        $FunctionalProvider<PlaceRepository, PlaceRepository, PlaceRepository>
+    with $Provider<PlaceRepository> {
+  PlaceRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'placeRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$placeRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<PlaceRepository> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  PlaceRepository create(Ref ref) {
+    return placeRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(PlaceRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<PlaceRepository>(value),
+    );
+  }
+}
+
+String _$placeRepositoryHash() => r'a4d8fe20d1348f13119c30d0b16377421fe01fda';
+
+@ProviderFor(recentSearchRepository)
+final recentSearchRepositoryProvider = RecentSearchRepositoryProvider._();
+
+final class RecentSearchRepositoryProvider
+    extends
+        $FunctionalProvider<
+          RecentSearchRepository,
+          RecentSearchRepository,
+          RecentSearchRepository
+        >
+    with $Provider<RecentSearchRepository> {
+  RecentSearchRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'recentSearchRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$recentSearchRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<RecentSearchRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  RecentSearchRepository create(Ref ref) {
+    return recentSearchRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(RecentSearchRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<RecentSearchRepository>(value),
+    );
+  }
+}
+
+String _$recentSearchRepositoryHash() =>
+    r'2f301e95e61926343b6b82065df5030fac4df754';
+
+@ProviderFor(recentPlaceRepository)
+final recentPlaceRepositoryProvider = RecentPlaceRepositoryProvider._();
+
+final class RecentPlaceRepositoryProvider
+    extends
+        $FunctionalProvider<
+          RecentPlaceRepository,
+          RecentPlaceRepository,
+          RecentPlaceRepository
+        >
+    with $Provider<RecentPlaceRepository> {
+  RecentPlaceRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'recentPlaceRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$recentPlaceRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<RecentPlaceRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  RecentPlaceRepository create(Ref ref) {
+    return recentPlaceRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(RecentPlaceRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<RecentPlaceRepository>(value),
+    );
+  }
+}
+
+String _$recentPlaceRepositoryHash() =>
+    r'76d219e181bdf63da46886777ca7ba616380a0a4';
+
 @ProviderFor(searchPlacesUseCase)
 final searchPlacesUseCaseProvider = SearchPlacesUseCaseProvider._();
 
@@ -55,7 +234,7 @@ final class SearchPlacesUseCaseProvider
 }
 
 String _$searchPlacesUseCaseHash() =>
-    r'100d820ac6b815551c6937d6b19ca1378b723d2e';
+    r'696486b4e2556d15a2c472e565e559c7b9988b23';
 
 @ProviderFor(searchPlacesByCategoryUseCase)
 final searchPlacesByCategoryUseCaseProvider =
@@ -106,7 +285,7 @@ final class SearchPlacesByCategoryUseCaseProvider
 }
 
 String _$searchPlacesByCategoryUseCaseHash() =>
-    r'10cda2f418d084cc5a9fc21d2b723625c43ec143';
+    r'71087549f24e68ef443edf5597798fb27cfe9911';
 
 @ProviderFor(recentSearchesUseCase)
 final recentSearchesUseCaseProvider = RecentSearchesUseCaseProvider._();
@@ -154,7 +333,7 @@ final class RecentSearchesUseCaseProvider
 }
 
 String _$recentSearchesUseCaseHash() =>
-    r'45e362067e6960e7e5b72acf392870034714f273';
+    r'5c2db1eb68afdda2c108e110870de7cf55f8a28e';
 
 @ProviderFor(recentPlacesUseCase)
 final recentPlacesUseCaseProvider = RecentPlacesUseCaseProvider._();
@@ -202,4 +381,4 @@ final class RecentPlacesUseCaseProvider
 }
 
 String _$recentPlacesUseCaseHash() =>
-    r'd0a7cc701e14a5832153c1325f734a517808a545';
+    r'a451993d8587b984a4efbc5528dbc255ed69ae2a';

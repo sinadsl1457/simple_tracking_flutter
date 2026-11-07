@@ -2,16 +2,13 @@
 // 인증 헤더는 Dio 인터셉터가 붙인다. 호출하는 곳: place_repository_impl.dart
 
 import 'package:dio/dio.dart';
-import 'package:injectable/injectable.dart';
 import 'package:retrofit/retrofit.dart';
 import 'package:simple_tracking/features/place/data/dto/place_dto.dart';
 
 part 'kakao_place_api.g.dart';
 
-@lazySingleton
 @RestApi(baseUrl: 'https://dapi.kakao.com')
 abstract class KakaoPlaceApi {
-  @factoryMethod
   factory KakaoPlaceApi(Dio dio) = _KakaoPlaceApi;
 
   static const pageSize = 15;

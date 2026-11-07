@@ -1,4 +1,5 @@
-// [core] dioProvider·sharedPreferencesProvider. Dio에는 카카오 인증이 붙어 있고, prefs는 main에서 넣지 않으면 바로 알린다.
+// [core] dioProvider·sharedPreferencesProvider.
+// Dio에는 카카오 인증이 붙어 있고, prefs는 main에서 넣지 않으면 바로 알린다.
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

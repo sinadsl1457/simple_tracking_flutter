@@ -15,28 +15,6 @@ import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:shared_preferences/shared_preferences.dart' as _i460;
 import 'package:simple_tracking/core/di/register_module.dart' as _i702;
-import 'package:simple_tracking/features/place/data/kakao_place_api.dart'
-    as _i1070;
-import 'package:simple_tracking/features/place/data/place_repository_impl.dart'
-    as _i763;
-import 'package:simple_tracking/features/place/data/shared_prefs_recent_place_repository.dart'
-    as _i672;
-import 'package:simple_tracking/features/place/data/shared_prefs_recent_search_repository.dart'
-    as _i1046;
-import 'package:simple_tracking/features/place/domain/place_repository.dart'
-    as _i928;
-import 'package:simple_tracking/features/place/domain/recent_place_repository.dart'
-    as _i673;
-import 'package:simple_tracking/features/place/domain/recent_places_use_case.dart'
-    as _i940;
-import 'package:simple_tracking/features/place/domain/recent_search_repository.dart'
-    as _i982;
-import 'package:simple_tracking/features/place/domain/recent_searches_use_case.dart'
-    as _i1047;
-import 'package:simple_tracking/features/place/domain/search_places_by_category_use_case.dart'
-    as _i876;
-import 'package:simple_tracking/features/place/domain/search_places_use_case.dart'
-    as _i48;
 import 'package:simple_tracking/features/push/data/push_module.dart' as _i54;
 import 'package:simple_tracking/features/push/domain/push_repository.dart'
     as _i596;
@@ -66,38 +44,14 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i361.Dio>(() => registerModule.dio());
     gh.lazySingleton<_i596.PushRepository>(() => pushModule.push());
-    gh.lazySingleton<_i1070.KakaoPlaceApi>(
-      () => _i1070.KakaoPlaceApi(gh<_i361.Dio>()),
-    );
     gh.lazySingleton<_i1019.KakaoRouteApi>(
       () => _i1019.KakaoRouteApi(gh<_i361.Dio>()),
-    );
-    gh.lazySingleton<_i928.PlaceRepository>(
-      () => _i763.PlaceRepositoryImpl(gh<_i1070.KakaoPlaceApi>()),
-    );
-    gh.lazySingleton<_i982.RecentSearchRepository>(
-      () => _i1046.SharedPrefsRecentSearchRepository(
-        gh<_i460.SharedPreferences>(),
-      ),
     );
     gh.factory<_i821.PushCubit>(
       () => _i821.PushCubit(gh<_i596.PushRepository>()),
     );
-    gh.lazySingleton<_i673.RecentPlaceRepository>(
-      () =>
-          _i672.SharedPrefsRecentPlaceRepository(gh<_i460.SharedPreferences>()),
-    );
-    gh.factory<_i1047.RecentSearchesUseCase>(
-      () => _i1047.RecentSearchesUseCase(gh<_i982.RecentSearchRepository>()),
-    );
     gh.lazySingleton<_i1013.RouteRepository>(
       () => _i314.RouteRepositoryImpl(gh<_i1019.KakaoRouteApi>()),
-    );
-    gh.factory<_i876.SearchPlacesByCategoryUseCase>(
-      () => _i876.SearchPlacesByCategoryUseCase(gh<_i928.PlaceRepository>()),
-    );
-    gh.factory<_i48.SearchPlacesUseCase>(
-      () => _i48.SearchPlacesUseCase(gh<_i928.PlaceRepository>()),
     );
     gh.factory<_i621.FindCarRouteUseCase>(
       () => _i621.FindCarRouteUseCase(gh<_i1013.RouteRepository>()),
@@ -107,9 +61,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i621.FindTransitRoutesUseCase>(
       () => _i621.FindTransitRoutesUseCase(gh<_i1013.RouteRepository>()),
-    );
-    gh.factory<_i940.RecentPlacesUseCase>(
-      () => _i940.RecentPlacesUseCase(gh<_i673.RecentPlaceRepository>()),
     );
     return this;
   }
