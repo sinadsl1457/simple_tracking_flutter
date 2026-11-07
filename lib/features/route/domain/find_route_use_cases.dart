@@ -1,7 +1,6 @@
 // [route/domain] 이동 수단별 길찾기 UseCase. 공통 규칙: 20m보다 가까우면 API를 부르지 않는다.
 // 대중교통은 빠른 순 정렬, 결과가 없으면 routeNotFound. 사용처: RouteNotifier
 
-import 'package:injectable/injectable.dart';
 import 'package:simple_tracking/core/error/failure.dart';
 import 'package:simple_tracking/core/error/result.dart';
 import 'package:simple_tracking/core/geo/geo_math.dart';
@@ -17,7 +16,6 @@ const minRouteDistanceMeters = 20.0;
 bool isTooCloseForRoute(GeoPoint origin, GeoPoint destination) =>
     GeoMath.distanceMeters(origin, destination) < minRouteDistanceMeters;
 
-@injectable
 class FindCarRouteUseCase {
   const FindCarRouteUseCase(this._repository);
 
@@ -31,7 +29,6 @@ class FindCarRouteUseCase {
   }
 }
 
-@injectable
 class FindWalkingRouteUseCase {
   const FindWalkingRouteUseCase(this._repository);
 
@@ -45,7 +42,6 @@ class FindWalkingRouteUseCase {
   }
 }
 
-@injectable
 class FindTransitRoutesUseCase {
   const FindTransitRoutesUseCase(this._repository);
 

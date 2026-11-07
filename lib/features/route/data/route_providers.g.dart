@@ -9,6 +9,89 @@ part of 'route_providers.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
+@ProviderFor(kakaoRouteApi)
+final kakaoRouteApiProvider = KakaoRouteApiProvider._();
+
+final class KakaoRouteApiProvider
+    extends $FunctionalProvider<KakaoRouteApi, KakaoRouteApi, KakaoRouteApi>
+    with $Provider<KakaoRouteApi> {
+  KakaoRouteApiProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'kakaoRouteApiProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$kakaoRouteApiHash();
+
+  @$internal
+  @override
+  $ProviderElement<KakaoRouteApi> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  KakaoRouteApi create(Ref ref) {
+    return kakaoRouteApi(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(KakaoRouteApi value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<KakaoRouteApi>(value),
+    );
+  }
+}
+
+String _$kakaoRouteApiHash() => r'83d02564b6b058a4d6fabfca6291f2e6e325c4c4';
+
+@ProviderFor(routeRepository)
+final routeRepositoryProvider = RouteRepositoryProvider._();
+
+final class RouteRepositoryProvider
+    extends
+        $FunctionalProvider<RouteRepository, RouteRepository, RouteRepository>
+    with $Provider<RouteRepository> {
+  RouteRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'routeRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$routeRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<RouteRepository> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  RouteRepository create(Ref ref) {
+    return routeRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(RouteRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<RouteRepository>(value),
+    );
+  }
+}
+
+String _$routeRepositoryHash() => r'c88c440784f98dba922080f4d0e9a5be05a285ba';
+
 @ProviderFor(findCarRouteUseCase)
 final findCarRouteUseCaseProvider = FindCarRouteUseCaseProvider._();
 
@@ -55,7 +138,7 @@ final class FindCarRouteUseCaseProvider
 }
 
 String _$findCarRouteUseCaseHash() =>
-    r'8d948806f618069cf8402cbecaec0e5faf6f306f';
+    r'5f98ad6c71444abcb7c3067cc4e254b8f11e9ab7';
 
 @ProviderFor(findWalkingRouteUseCase)
 final findWalkingRouteUseCaseProvider = FindWalkingRouteUseCaseProvider._();
@@ -103,7 +186,7 @@ final class FindWalkingRouteUseCaseProvider
 }
 
 String _$findWalkingRouteUseCaseHash() =>
-    r'e229193304ab2e5d4d5f33ee6c88a580773a7522';
+    r'6ca9bb0e17ebecc2287732e24f5ce2119ce26b58';
 
 @ProviderFor(findTransitRoutesUseCase)
 final findTransitRoutesUseCaseProvider = FindTransitRoutesUseCaseProvider._();
@@ -151,4 +234,4 @@ final class FindTransitRoutesUseCaseProvider
 }
 
 String _$findTransitRoutesUseCaseHash() =>
-    r'58e7fff594d8b66e5f0554d462ba9a490fa665e0';
+    r'c9f183db436e15dac788384bfb241c9989cf6775';

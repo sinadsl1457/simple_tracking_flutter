@@ -1,6 +1,5 @@
 // [route/data] RouteRepository 구현: API 호출 → 응답 상태 검사 → 도메인 변환. 실패 처리는 safeApiCall.
 
-import 'package:injectable/injectable.dart';
 import 'package:simple_tracking/core/error/failure.dart';
 import 'package:simple_tracking/core/error/result.dart';
 import 'package:simple_tracking/core/geo/geo_point.dart';
@@ -11,7 +10,6 @@ import 'package:simple_tracking/features/route/domain/route_path.dart';
 import 'package:simple_tracking/features/route/domain/route_repository.dart';
 import 'package:simple_tracking/features/route/domain/transit_route.dart';
 
-@LazySingleton(as: RouteRepository)
 class RouteRepositoryImpl implements RouteRepository {
   const RouteRepositoryImpl(this._api);
 

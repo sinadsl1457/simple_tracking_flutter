@@ -2,17 +2,14 @@
 // 호출하는 곳: route_repository_impl.dart
 
 import 'package:dio/dio.dart';
-import 'package:injectable/injectable.dart';
 import 'package:retrofit/retrofit.dart';
 import 'package:simple_tracking/features/route/data/dto/directions_dto.dart';
 import 'package:simple_tracking/features/route/data/dto/routing_dto.dart';
 
 part 'kakao_route_api.g.dart';
 
-@lazySingleton
 @RestApi(baseUrl: 'https://dapi.kakao.com')
 abstract class KakaoRouteApi {
-  @factoryMethod
   factory KakaoRouteApi(Dio dio) = _KakaoRouteApi;
 
   /// 카카오모빌리티는 호스트가 달라 절대 URL을 쓴다.

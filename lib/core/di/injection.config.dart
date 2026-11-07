@@ -20,14 +20,6 @@ import 'package:simple_tracking/features/push/domain/push_repository.dart'
     as _i596;
 import 'package:simple_tracking/features/push/presentation/cubit/push_cubit.dart'
     as _i821;
-import 'package:simple_tracking/features/route/data/kakao_route_api.dart'
-    as _i1019;
-import 'package:simple_tracking/features/route/data/route_repository_impl.dart'
-    as _i314;
-import 'package:simple_tracking/features/route/domain/find_route_use_cases.dart'
-    as _i621;
-import 'package:simple_tracking/features/route/domain/route_repository.dart'
-    as _i1013;
 
 extension GetItInjectableX on _i174.GetIt {
   // initializes the registration of main-scope dependencies inside of GetIt
@@ -44,23 +36,8 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i361.Dio>(() => registerModule.dio());
     gh.lazySingleton<_i596.PushRepository>(() => pushModule.push());
-    gh.lazySingleton<_i1019.KakaoRouteApi>(
-      () => _i1019.KakaoRouteApi(gh<_i361.Dio>()),
-    );
     gh.factory<_i821.PushCubit>(
       () => _i821.PushCubit(gh<_i596.PushRepository>()),
-    );
-    gh.lazySingleton<_i1013.RouteRepository>(
-      () => _i314.RouteRepositoryImpl(gh<_i1019.KakaoRouteApi>()),
-    );
-    gh.factory<_i621.FindCarRouteUseCase>(
-      () => _i621.FindCarRouteUseCase(gh<_i1013.RouteRepository>()),
-    );
-    gh.factory<_i621.FindWalkingRouteUseCase>(
-      () => _i621.FindWalkingRouteUseCase(gh<_i1013.RouteRepository>()),
-    );
-    gh.factory<_i621.FindTransitRoutesUseCase>(
-      () => _i621.FindTransitRoutesUseCase(gh<_i1013.RouteRepository>()),
     );
     return this;
   }
