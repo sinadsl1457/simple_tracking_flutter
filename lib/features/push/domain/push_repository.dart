@@ -1,12 +1,12 @@
 // [push/domain] 푸시 저장소 인터페이스. 구현: data/fcm_push_repository.dart(FCM),
 // data/disabled_push_repository.dart(Firebase 설정 전). 고르는 곳: data/push_module.dart
-// 쓰는 곳: PushCubit(앱 전체에 하나).
+// 쓰는 곳: PushNotifier(앱 전체에 하나).
 
 import 'package:simple_tracking/features/push/domain/push_message.dart';
 import 'package:simple_tracking/features/push/domain/push_permission.dart';
 
 /// 푸시라는 "바깥(FCM·APNs·OS 알림)"의 입구. 받은 걸 도메인 모델로 바꿔 내보내기만 한다.
-/// 탭하면 어느 화면으로 갈지 같은 앱 규칙은 여기 두지 않는다(PushCubit 몫).
+/// 탭하면 어느 화면으로 갈지 같은 앱 규칙은 여기 두지 않는다(PushNotifier 몫).
 abstract interface class PushRepository {
   /// 권한 팝업을 띄우고 결과를 돌려준다. 이미 결정됐으면 팝업 없이 바로 돌려준다.
   Future<PushPermission> requestPermission();

@@ -1,5 +1,5 @@
 // [push/domain] 앱이 이해하는 푸시 메시지. Firebase의 RemoteMessage를 data/push_message_mapper.dart가 이걸로 바꾼다.
-// 이 파일은 Firebase를 모른다 → 나머지 앱(Cubit·화면·테스트)도 Firebase를 몰라도 된다.
+// 이 파일은 Firebase를 모른다 → 나머지 앱(Notifier·화면·테스트)도 Firebase를 몰라도 된다.
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 

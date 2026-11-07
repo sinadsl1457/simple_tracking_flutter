@@ -1,11 +1,11 @@
-// [core/presentation] Cubit의 effect 스트림을 구독하는 위젯. BlocListener의 effect 버전.
+// [core/presentation] Notifier의 effect 스트림(EffectChannel)을 구독하는 위젯. ref.listen의 일회성 이벤트 버전.
 // 사용처: MapScreen, RoutePlannerPage, EndpointPickerPage
 
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
-/// Cubit의 effect 스트림을 구독한다. BlocListener의 effect 버전.
+/// Notifier의 effect 스트림을 구독한다. 화면이 사라지면 구독을 끊는다.
 class EffectListener<E> extends StatefulWidget {
   const EffectListener({
     required this.effects,

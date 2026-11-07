@@ -12,13 +12,10 @@ dependencies:
   firebase_messaging: ^17.0.1
   flutter:
     sdk: flutter
-  flutter_bloc: ^9.1.1
   flutter_riverpod: ^3.4.3
   freezed_annotation: ^3.1.0
   geolocator: ^14.1.2
-  get_it: ^9.3.0
   go_router: ^18.1.0
-  injectable: ^3.0.0
   json_annotation: ^4.12.0
   kakao_map_view:
     path: packages/kakao_map_view
@@ -29,13 +26,11 @@ dependencies:
   url_launcher: ^6.3.3
 
 dev_dependencies:
-  bloc_test: ^10.0.0
   build_runner: ^2.16.1
   fake_async: ^1.3.3
   flutter_test:
     sdk: flutter
   freezed: ^4.0.1
-  injectable_generator: ^3.1.3
   json_serializable: ^6.14.1
   mocktail: ^1.0.5
   retrofit_generator: ^10.2.12

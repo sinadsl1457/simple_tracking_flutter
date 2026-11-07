@@ -1,5 +1,5 @@
 // MapNotifier 테스트. 가짜 위치 저장소를 provider 덮어쓰기(override)로 넣는다.
-// Cubit 판(map_cubit_test.dart)과 같은 시나리오 — 동작이 그대로인지 확인하는 명세 역할.
+// Cubit에서 옮길 때와 같은 시나리오 — 동작이 그대로인지 확인하는 명세 역할.
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

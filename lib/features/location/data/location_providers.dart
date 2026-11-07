@@ -1,4 +1,4 @@
-// [location/data] 위치 기능을 provider로 등록한다(Riverpod 판 DI). location_module.dart(get_it)를 대신한다.
+// [location/data] 위치 기능을 provider로 등록한다(Riverpod 판 DI).
 // 쓰는 곳: map/presentation/map_notifier.dart. 테스트는 locationRepositoryProvider를 가짜로 덮어쓴다.
 
 import 'package:geolocator/geolocator.dart';

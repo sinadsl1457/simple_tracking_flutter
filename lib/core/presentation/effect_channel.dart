@@ -1,4 +1,4 @@
-// [core/presentation] Notifier용 "일회성 이벤트(effect)" 통로. Cubit 판 EffectEmitter(effect_cubit.dart)의 Riverpod 판.
+// [core/presentation] Notifier용 "일회성 이벤트(effect)" 통로.
 // 상태(state)는 화면에 계속 보이는 값, effect는 한 번 처리하고 끝나는 일(카메라 이동, 토스트, 대화상자).
 // 받는 쪽: widgets/effect_listener.dart. Notifier가 ref.onDispose에서 close한다.
 

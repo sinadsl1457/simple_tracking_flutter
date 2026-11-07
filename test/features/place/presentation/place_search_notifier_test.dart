@@ -28,7 +28,7 @@ void main() {
 
   late ProviderContainer container;
 
-  /// UseCase provider를 가짜 저장소로 만든 UseCase로 덮어쓴다(get_it 없이 돈다).
+  /// UseCase provider를 가짜 저장소로 만든 UseCase로 덮어쓴다.
   PlaceSearchNotifier makeNotifier(
     FakePlaceRepository repository, {
     FakeRecentSearchRepository? recents,
